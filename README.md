@@ -1,2 +1,575 @@
-# Vanadiel-HD-UI
-TBD
+# Vana'diel HD UI
+
+> **Project status:** Design and gameplay audit  
+> This README is a living draft. Features, installation steps, file locations, and configuration commands marked **TBD** will be completed and verified as development progresses.
+
+Vana'diel HD UI is a modernization project for the Final Fantasy XI interface, designed for Ashita v4. Its purpose is to make information the game already communicates clearer, more cohesive, and more readable at modern resolutions while preserving the character, friction, and deliberate limitations that are part of FFXI's identity.
+
+The eventual goal is one cohesive addon with internally independent modules, supported by a separate set of native interface textures and optional themes for compatible external addons. It should look and feel like one interface without becoming one fragile piece of code.
+
+## Design philosophy
+
+### Modernize presentation, not gameplay
+
+Vana'diel HD UI may improve the presentation, organization, and usability of information FFXI already gives the player. It should not reveal hidden information, automate actions, make decisions for the player, or remove intentional gameplay systems.
+
+The design target is:
+
+> A modern, modular MMO HUD constructed from Vana'diel-inspired architectural pieces—compact in combat, richly framed at its major anchors, and visually unified without becoming bulky.
+
+### Native-information boundary
+
+Every feature will be reviewed against the following standard:
+
+| Question | Required outcome |
+|---|---|
+| Does FFXI already communicate this information? | Yes |
+| Are we improving presentation instead of creating new knowledge? | Yes |
+| Does the feature reveal hidden or normally unavailable information? | No |
+| Does it calculate, predict, or infer information for the player? | No |
+| Does it automate an action, reaction, target, or decision? | No |
+| Does it remove an intentional management or discovery system? | No |
+| Could it create a meaningful gameplay advantage beyond readability? | If possibly yes, stop and review |
+
+Features based on contextual, aggregated, inferred, or packet-derived information require individual review even when they are technically possible.
+
+### Preserve intentional friction
+
+FFXI's inventory, equipment, currency, Mog House, and related menu systems are part of the game's intended experience. The project will not add persistent inventory-capacity indicators, storage summaries, gil tracking, market values, session earnings, or other tools that reduce those systems to passive HUD data.
+
+Native messages such as receiving an item, obtaining gil, or being unable to obtain an item may still appear in chat or the temporary event feed. The addon will not turn those messages into proactive inventory management.
+
+### One addon, internally modular
+
+The overlay will load as a single addon, but each major system should remain independently configurable and maintainable. Modules should be individually enabled, disabled, positioned, and styled without creating unnecessary dependencies between unrelated features.
+
+### Designed around actual play
+
+Screen space must be earned. The interface will prioritize information the player actually looks at during combat and remove redundant displays.
+
+- The party list is the primary group-combat information center.
+- Player, target, target-of-target, and casting information belong near the action.
+- The bottom-center HUD is a unified family of utilities rather than a collection of unrelated overlays.
+- The minimap is the single directional display; the redundant native compass is not part of the intended layout.
+- Important timing information should be immediately legible without flooding the screen.
+
+### Original implementation and responsible reuse
+
+The project may study the behavior and general interface patterns of existing addons, but its core implementation and visual assets should be original.
+
+- Use documented Ashita interfaces and game data.
+- Write original event handling, state management, rendering, and configuration code.
+- Create original textures and visual assets.
+- Do not copy source code unless its license explicitly permits the intended use.
+- Preserve required license notices and provide clear attribution for any incorporated work.
+- Treat familiar UI patterns—tabs, toggles, drag positioning, profiles, icon timers, and unit frames—as design references rather than source material.
+
+## Visual language
+
+The current visual direction is established, with exact values to be refined during component design.
+
+- Dark navy foundations
+- Bright brass highlights
+- Crisp, restrained borders
+- Compact information density
+- Clear visual hierarchy
+- Limited, purposeful ornament
+- Matching panel geometry, insets, separators, and endcaps
+- Modular pieces that look intentional both alone and when assembled
+- Controller-friendly placement and readability
+- Modern resolution support without losing FFXI's Vana'diel character
+
+Color, typography, spacing, border, and animation specifications will eventually be maintained in a separate design-system document.
+
+## Legal and use disclaimer
+
+Vana'diel HD UI is an unofficial third-party project for Ashita v4. It is not affiliated with, sponsored by, approved by, or endorsed by Square Enix, Ashita, or the authors of other addons referenced during design.
+
+Square Enix's published policies prohibit third-party programs that affect gameplay, whether or not they provide an unfair advantage. There is no official exception for visual or quality-of-life addons. Anyone choosing to use Ashita or Vana'diel HD UI does so at their own risk and is responsible for reviewing the current rules governing FINAL FANTASY XI.
+
+The project's ethical limits—no automation, cheating, hidden information, unfair advantage, or erosion of intentional gameplay systems—are development principles. They are **not** a claim of Terms-of-Use compliance and do not guarantee that use will be ignored or permitted.
+
+Official references:
+
+- [Square Enix: Use of 3rd Party Programs](https://support.na.square-enix.com/faqarticle.php?id=20&kid=12800)
+- [Square Enix: Prohibited Activities in FINAL FANTASY XI](https://support.na.square-enix.com/faqarticle.php?id=20&kid=78029)
+
+## Project scope
+
+### Planned core addon modules
+
+| System | Intended purpose | Current direction |
+|---|---|---|
+| Player frame | Compact HP, MP, TP, identity, and casting information near the avatar | Contextual and configurable; replaces the redundant large player HUD |
+| Target frame | Clear information about the current target | Mirrored with the player frame; supports target casting |
+| Target-of-target | Present native target relationship information more clearly | Include only after confirming the native-information boundary |
+| Party frames | Primary six-person combat display | Individual stacked unit frames with strong HP, MP, TP, targeting, job/subjob, and level presentation |
+| Alliance frames | Compact information for Parties A, B, and C | WoW-style raid-frame concept adapted to FFXI's simpler requirements |
+| Trust-level indication | Help the player notice when a summoned trust is below the player's level | Level text treatment only; exact data availability requires verification |
+| Cast display | Show current player and target casting clearly | Visually integrated with the combat HUD |
+| Minimap | Provide compact location and direction information | Round, centered default; replaces the need for the native compass |
+| Hotbars | Present player-configured abilities in a cohesive utility dock | Multiple layout presets plus custom positioning |
+| Experience bar | Display native experience or limit-point progress | Wide foundation along the bottom-center HUD |
+| Timing system | Unify active buffs, debuffs, magic recasts, job-ability recasts, and related native timing information | Icons, bars, or hybrid views with sorting and layout control |
+| Notifications | Show restrained, temporary native event information | Unified fading feed instead of a separate background tab for each line |
+| Loot history | Provide recent native loot messages on demand | Collapsible history; no gil values, market values, or inventory totals |
+| Synthesis history | Organize native crafting results without adding predictions or hidden information | Collapsible log for results, quality, skill-ups, and material-loss messages |
+| Chat display | Modernize chat readability while retaining native behavior where practical | Two configurable decorative displays with native input preferred |
+| Configuration and edit mode | Control modules, layouts, profiles, and positioning | Cohesive themed interface with live positioning and recovery controls |
+
+### Native interface and texture package
+
+These changes affect FFXI's native interface rather than the modern overlay and should remain a separate installation layer:
+
+- XIView-style native menu and window DAT changes
+- Custom menu cursors and buttons
+- Native fonts and status graphics
+- Chat-window textures
+- XIPivot-delivered texture replacements
+- Other verified native interface assets
+
+### Optional external-addon themes
+
+Some useful systems do not belong in the core addon but may receive an optional matching theme and configuration guide.
+
+| External addon | Intended support |
+|---|---|
+| EquipMon | Optional matching assets, recommended placement, and configuration preset if its structure permits clean theming |
+| Other addons | Evaluated individually; inclusion is not assumed |
+
+The Vana'diel HD UI installer should not silently modify another addon's files. Any external theme should be clearly identified, optional, reversible, and accompanied by attribution and compatibility notes.
+
+### Confirmed exclusions
+
+- Enemy list
+- Automated targeting, action selection, or command execution
+- Predictive combat calculations
+- Hidden or normally unavailable game information
+- Large redundant horizontal player-status display
+- Redundant in-game compass
+- Inventory capacity, free-space, or storage indicators
+- Inventory-full gauges or proactive space warnings
+- Combined inventory summaries
+- Gil totals, session earnings, or enhanced gil tracking
+- Item vendor, market, or projected gil values
+- Equipment display in the core addon
+- Features whose primary purpose is to avoid using FFXI's intended inventory, equipment, currency, or Mog House interfaces
+
+## Functional design notes
+
+### Party and alliance frames
+
+The party list is currently the highest-priority gameplay component.
+
+The default six-person layout should present each member as an individual frame stacked vertically, without portraits. Each frame should prioritize:
+
+1. Name
+2. HP
+3. MP
+4. TP
+5. Level and trust-level difference
+6. Main job/subjob abbreviations
+7. Current target selection
+8. Important status effects
+9. Optional, low-priority distance
+
+The system should offer at least two layout families:
+
+- **Stacked party frames:** richer frames for normal play, suitable for lower-right or mid-left placement.
+- **Raid-style frames:** compact horizontal or grid frames that healers and support players can position near the center of the screen.
+
+Alliance mode should arrange Parties A, B, and C as distinct, compact groups with HP and targeting given the greatest prominence. TP, MP, and priority status effects remain available but may use denser presentation.
+
+Background options should include an opaque plate for covering unavoidable native lower-right elements and a transparent mode for placement elsewhere.
+
+### Center HUD and utility dock
+
+The round minimap is the bottom-center visual anchor. Hotbars, experience progress, recasts, and contextual utilities should share a construction language and appear intentionally assembled even when each module has its own frame.
+
+Proposed hotbar presets:
+
+- Split wings around the minimap
+- Two continuous horizontal rows
+- Compact left and right banks
+- One long horizontal bank
+- Controller-oriented grouped banks
+- Freeform custom layout
+
+### Timing system
+
+Status timers and recasts should be treated as one time-sensitive information system with different views, not unrelated text lists.
+
+Possible categories:
+
+- Current cast
+- Player buffs
+- Player debuffs
+- Target effects
+- Magic recasts
+- Job-ability recasts
+- Other native ability recasts
+
+Possible display modes:
+
+- Icons with numeric countdowns
+- Horizontal timer bars
+- Hybrid icons that become bars below a threshold
+- Hotbar cooldown overlays
+- Hidden until a configurable remaining-time threshold
+
+The guiding rule is:
+
+> Show important timers continuously, ordinary timers contextually, and everything else only on demand.
+
+### Notifications, loot, and synthesis
+
+Temporary notifications should behave like a clean event feed:
+
+- One cohesive list rather than disconnected tabs
+- No background by default, with an optional shared background
+- New entries added consistently and faded as a group
+- Optional duplicate grouping
+- Adjustable duration and maximum visible lines
+- Key items visually distinguished using an FFXI-inspired treatment
+- Important native failures, including inventory-full messages, allowed without proactive inventory tracking
+
+Default notifications should not show vendor value, market value, total inventory, remaining capacity, or other metadata that diminishes item discovery.
+
+Loot and synthesis histories may be opened from the center HUD, slash commands, or configurable bindings. They are on-demand records of information already communicated by the game, not permanent analytical panels.
+
+### Chat
+
+The preferred direction is a custom scalable display with native chat input retained:
+
+- Left window for conversation and primary messages
+- Right window for combat and system information
+- Independent filters, fonts, opacity, auto-hide behavior, and placement
+- Matching decorative construction
+- Ability for the right window or another opaque module to cover unavoidable native lower-right UI elements
+
+A complete replacement of controller text entry, auto-translate, tell history, and other native input behavior is outside the initial target unless technical investigation proves it necessary.
+
+## Installation template
+
+> **Not ready for use.** This section is a framework for verified instructions. Do not publish it as an installation guide until every step has been tested from a clean Ashita v4 setup.
+
+### Supported environment
+
+| Requirement | Supported/tested value |
+|---|---|
+| FINAL FANTASY XI client | TBD |
+| Ashita version | Ashita v4 — exact tested build TBD |
+| Windows version | TBD |
+| Display resolution | 1920×1080 baseline; additional resolutions TBD |
+| UI scaling | TBD |
+| Controller/mouse assumptions | Controller-first; exact requirements TBD |
+| Required plugins/addons | TBD |
+| Optional plugins/addons | TBD |
+
+### Before installation
+
+1. Review the legal and use disclaimer above.
+2. Confirm that FINAL FANTASY XI and the supported Ashita v4 build launch correctly before adding Vana'diel HD UI.
+3. Close FINAL FANTASY XI and Ashita.
+4. Back up every file or folder that the installation will replace or modify.
+5. Record the current locations of:
+   - Ashita v4
+   - The FFXI installation
+   - Addons
+   - Configuration files
+   - XIPivot
+   - Any existing native UI texture packages
+6. Remove or disable known conflicting addons and texture replacements listed in the compatibility section.
+
+### Package contents
+
+```text
+VanadielHDUI/
+├── addon/                  # Core Ashita addon — TBD
+├── assets/                 # Original overlay textures and fonts — TBD
+├── native-ui/              # Optional native DAT/texture package — TBD
+├── external-themes/        # Optional themes for compatible addons — TBD
+├── presets/                # Tested layout and configuration presets — TBD
+├── docs/                   # Detailed guides and reference images — TBD
+├── LICENSE                 # Project license — TBD
+├── THIRD-PARTY-NOTICES     # Required attribution and license notices — TBD
+└── README.md
+```
+
+### Core addon installation
+
+1. Download the release package from **TBD**.
+2. Verify the release version and checksum: **TBD**.
+3. Copy the core addon folder to:
+
+   ```text
+   <Ashita v4>\addons\<TBD>
+   ```
+
+4. Load the addon using:
+
+   ```text
+   /addon load <TBD>
+   ```
+
+5. To load it automatically, add the verified command to the appropriate Ashita startup script: **TBD**.
+6. Launch the game and complete the verification checklist below.
+
+### Optional native interface package
+
+1. Confirm that the required XIPivot version is installed and working: **TBD**.
+2. Back up or disable conflicting native UI packages.
+3. Copy the Vana'diel HD UI native package to: **TBD**.
+4. Add the required XIPivot configuration or load order: **TBD**.
+5. Restart the game completely.
+6. Verify menus, cursors, chat windows, fonts, status icons, and character selection.
+
+### Optional external-addon themes
+
+For each theme:
+
+1. Confirm the exact supported addon and version.
+2. Back up its current settings and custom assets.
+3. Copy only the documented theme files.
+4. Import or manually apply the provided preset.
+5. Restart or reload the external addon.
+6. Confirm that the external addon remains independently removable.
+
+### First launch
+
+1. Open configuration mode using **TBD**.
+2. Select a resolution/layout preset.
+3. Confirm that all active modules fit within the safe screen area.
+4. Choose whether the party frame or right chat panel covers the native lower-right UI.
+5. Confirm controller, mouse, and keyboard interaction.
+6. Save the profile.
+7. Reload the addon and confirm that the profile persists.
+
+### Verification checklist
+
+- [ ] Game launches without an Ashita error.
+- [ ] Addon loads without console errors.
+- [ ] Configuration window opens and closes.
+- [ ] Edit mode allows intended modules to move.
+- [ ] Saved positions persist after reload.
+- [ ] Player and target frames update correctly.
+- [ ] Party and alliance frames update correctly.
+- [ ] Current party target is unmistakable.
+- [ ] Trust level and job information are accurate.
+- [ ] HP, MP, and TP values update correctly.
+- [ ] Player and target cast displays behave correctly.
+- [ ] Minimap position and orientation are correct.
+- [ ] Hotbar interaction remains controller-safe.
+- [ ] Buff, debuff, and recast timers are accurate.
+- [ ] Notifications do not disclose excluded inventory or value information.
+- [ ] Chat filters and input behavior remain reliable.
+- [ ] Native textures appear correctly at the supported resolution.
+- [ ] No module automates an action or exposes unavailable information.
+
+### Updating
+
+1. Read the release notes and breaking-change warnings.
+2. Back up the current addon folder, configuration, presets, and modified native assets.
+3. Follow the version-specific update instructions: **TBD**.
+4. Do not overwrite user profiles unless the release explicitly requires a migration.
+5. Complete the verification checklist again.
+
+### Uninstalling and rollback
+
+1. Close FINAL FANTASY XI and Ashita.
+2. Remove or disable the core addon: **TBD**.
+3. Remove the Vana'diel HD UI XIPivot package or restore the prior native UI files.
+4. Restore external-addon assets and settings from backup.
+5. Remove the automatic load command.
+6. Launch the game and verify that the previous interface is restored.
+
+## Configuration template
+
+Each module should be documented using this same structure as it is implemented and tested.
+
+### Module: `[Module name]`
+
+**Purpose:**  
+`What native FFXI information this module presents and why it earns screen space.`
+
+**Native source and boundary:**  
+`Where FFXI normally communicates the information and any fair-play limitations.`
+
+**Default behavior:**  
+`When it appears, what it shows, and how it responds to game context.`
+
+**Enable or disable:**
+
+```text
+Command or configuration path: TBD
+Default: Enabled | Disabled
+```
+
+**Position and anchor:**
+
+| Setting | Default | Options/notes |
+|---|---|---|
+| Anchor | TBD | TBD |
+| X position | TBD | TBD |
+| Y position | TBD | TBD |
+| Scale | TBD | TBD |
+| Expansion direction | TBD | TBD |
+| Screen-edge behavior | TBD | TBD |
+
+**Layout:**
+
+| Setting | Default | Options/notes |
+|---|---|---|
+| Preset | TBD | TBD |
+| Orientation | TBD | TBD |
+| Rows/columns | TBD | TBD |
+| Spacing | TBD | TBD |
+| Alignment | TBD | TBD |
+| Background | TBD | Opaque, translucent, or off where supported |
+
+**Information display:**
+
+| Setting | Default | Options/notes |
+|---|---|---|
+| Visible fields | TBD | TBD |
+| Numeric values | TBD | TBD |
+| Icons | TBD | TBD |
+| Labels | TBD | TBD |
+| Sorting | TBD | TBD |
+| Filtering | TBD | TBD |
+
+**Appearance:**
+
+| Setting | Default | Options/notes |
+|---|---|---|
+| Theme | Vana'diel HD | TBD |
+| Font | TBD | TBD |
+| Font size | TBD | TBD |
+| Opacity | TBD | TBD |
+| Border treatment | TBD | TBD |
+| Highlight behavior | TBD | TBD |
+
+**Interaction:**
+
+- Mouse behavior: TBD
+- Controller behavior: TBD
+- Keyboard or slash commands: TBD
+- Selection and targeting behavior: TBD
+
+**Compatibility and conflicts:**
+
+- Known compatible versions: TBD
+- Known conflicts: TBD
+- Required load order: TBD
+- Performance considerations: TBD
+
+**Verification:**
+
+- [ ] Module loads without error.
+- [ ] Displayed information matches the native game.
+- [ ] Position and scale persist.
+- [ ] Contextual visibility behaves correctly.
+- [ ] Mouse/controller input is not blocked.
+- [ ] No excluded or unavailable information is exposed.
+
+**Known limitations:**  
+`TBD`
+
+### Global configuration categories
+
+The configuration interface is expected to include:
+
+- Profiles
+- Resolution and layout presets
+- Module enable/disable controls
+- Live edit/position mode
+- Anchoring and scaling
+- Shared typography
+- Shared colors and opacity
+- Background and border options
+- Timing and animation preferences
+- Input and controller-safe behavior
+- Import/export or backup, if implemented safely
+- Reset module
+- Reset layout
+- Recovery from off-screen or invalid positions
+
+## Compatibility record template
+
+| Component | Version tested | Status | Required action | Notes |
+|---|---:|---|---|---|
+| Ashita v4 | TBD | TBD | TBD | TBD |
+| FINAL FANTASY XI client | TBD | TBD | TBD | TBD |
+| XIPivot | TBD | TBD | TBD | TBD |
+| XIView/native UI package | TBD | TBD | TBD | TBD |
+| EquipMon theme | TBD | TBD | TBD | Optional external support |
+| Other addons | TBD | TBD | TBD | Add only after testing |
+
+## Development decision record template
+
+Use this record whenever a proposed feature could alter the project's native-information boundary or scope.
+
+### Decision: `[Feature or change]`
+
+- **Date:** YYYY-MM-DD
+- **Status:** Proposed | Approved | Rejected | Deferred | Superseded
+- **Player need:** TBD
+- **Native FFXI equivalent:** TBD
+- **Information source:** TBD
+- **Presentation improvement:** TBD
+- **Potential gameplay advantage:** TBD
+- **Effect on intentional friction or immersion:** TBD
+- **Automation or inference risk:** TBD
+- **Licensing or attribution concern:** TBD
+- **Decision and reasoning:** TBD
+- **Verification required:** TBD
+
+## Credits and attribution
+
+Vana'diel HD UI is informed by long-term playtesting and by interface patterns found across Final Fantasy XI addons and modern MMOs. Inspiration does not imply affiliation or endorsement.
+
+Projects or products considered as behavioral or layout references include:
+
+- Ashita v4
+- XIUI
+- EquipMon
+- StatusTimers
+- RecastPlus
+- XIView
+- XIPivot
+- World of Warcraft and its raid-frame conventions
+- OmniCC
+- ElvUI
+- Guild Wars 2
+- Star Wars: The Old Republic
+
+Before any public release, this section must be replaced or supplemented by a complete `THIRD-PARTY-NOTICES` record identifying every distributed dependency, incorporated source fragment, modified work, asset, license, copyright notice, and required attribution.
+
+## Roadmap
+
+1. Complete the remaining gameplay audit.
+2. Refine and document the visual design system.
+3. Produce the authoritative layout and component specification.
+4. Define the shared addon framework and module boundaries.
+5. Prototype the native-information and technical uncertainties.
+6. Build the essential combat HUD.
+7. Add the center utility dock and timing system.
+8. Add chat, notification, and history modules.
+9. Create optional native UI and external-addon theme packages.
+10. Test installation, updates, rollback, compatibility, and supported resolutions.
+11. Complete licensing, attribution, release notes, and public documentation.
+
+## Current open questions
+
+- Exact behavior and native availability of target-of-target information
+- Reliable trust identification and level reporting
+- Target-selection interaction from party and raid-style frames
+- Native treasure-pool behavior and whether any modernization belongs in scope
+- Job-specific information that FFXI already communicates and may benefit from clearer presentation
+- Most reliable native source for synthesis history
+- Practical limits of custom chat display while preserving native input
+- Supported resolutions and scaling strategy
+- Clean theme/preset support for EquipMon
+- Final project and release license
+- Exact installation, updating, and rollback procedures
+
