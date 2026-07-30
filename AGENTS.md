@@ -1,7 +1,8 @@
 # Vana'diel HD UI — Codex Instructions
 
-This repository is in the design-transfer and gameplay-audit phase. Do not begin
-implementation unless Xpie explicitly asks for it.
+This repository has completed visual conception and is preparing for core
+architecture development. Do not begin implementation unless Xpie explicitly
+asks for it.
 
 ## Required reading
 
@@ -30,12 +31,15 @@ Xpie before a material design or implementation choice depends on it.
 ## Binding project boundaries
 
 - Modernize the presentation of information FFXI already communicates; do not
-  create new knowledge.
-- Never add automation, action selection, command execution, predictive or
-  inferred combat information, hidden or normally unavailable information,
-  enemy lists, inventory tracking, storage summaries, free-space indicators,
-  proactive inventory warnings, gil tracking, market/vendor values, or equipment
-  displays in the core addon.
+  create new knowledge, except for the single target-effect timing exception
+  approved in D-014/Q-003.
+- Never add automation, action selection, automated command execution,
+  predictive or inferred combat information, hidden or normally unavailable
+  information, enemy lists, inventory tracking, storage summaries, free-space
+  indicators, proactive inventory warnings, gil tracking, market/vendor values,
+  or equipment displays in the core addon. Direct user-initiated interactions
+  are allowed only where specifically approved, including party targeting under
+  Q-005 and removable player-status cancellation under Q-006.
 - A native inventory-full or item/gil acquisition message may be displayed as a
   temporary native event. It must not become a gauge, forecast, persistent
   capacity display, or analytical inventory tool.
@@ -51,15 +55,22 @@ Xpie before a material design or implementation choice depends on it.
 ## Preserved component decisions
 
 Treat the approved decisions in `docs/DECISIONS.md` as binding, including the
-compact player frame, mirrored target frame, conditional target-of-target,
-integrated casting presentation, unified status/recast tray, party-first combat
-layout, restrained notification feed, inventory exclusions, and
+compact player frame, mirrored target frame, player-only casting presentation,
+audited status/recast tray, party-first combat layout, direct user-initiated
+party targeting, restrained notification feed, inventory exclusions, and
 native-information boundary.
 
-Names alone do not authorize unresolved behavior. In particular, do not
-implement target-of-target, target casting, target effects, trust-level
-comparison, click-to-target behavior, or distance until their open reviews are
-resolved.
+Target-of-target, target casting, trust-level comparison, passive party-member
+target data, and numeric/continuous distance are rejected. Q-003/D-014 narrowly
+approve estimated icons and timers for observed player-initiated effects on the
+current enemy target. Q-006 requires suppression of the redundant native player
+status-icon display through a reversible, validated method and preserves native
+status cancellation through one deliberate right-click on a currently
+cancellable local-player status. It does not authorize automatic, bulk,
+target/party, queued, retried, or chained cancellation, or copied third-party
+code/assets. Q-007 duplicate grouping is approved only for exact duplicates.
+Q-011B preserves the pet/job-unit-frame direction but remains pending
+field-level definition.
 
 ## Implementation and reuse rules
 
