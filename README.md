@@ -3,6 +3,12 @@
 > **Project status:** Design and gameplay audit  
 > This README is a living draft. Features, installation steps, file locations, and configuration commands marked **TBD** will be completed and verified as development progresses.
 
+> **Document authority:** This README preserves the transferred baseline and
+> remains an overview. `docs/DECISIONS.md` controls approval status, and
+> `docs/DESIGN-SPEC.md` controls current component constraints. A feature named
+> here is not authorized when either document marks its data or behavior as
+> conditional, deferred, or unresolved.
+
 Vana'diel HD UI is a modernization project for the Final Fantasy XI interface, designed for Ashita v4. Its purpose is to make information the game already communicates clearer, more cohesive, and more readable at modern resolutions while preserving the character, friction, and deliberate limitations that are part of FFXI's identity.
 
 The eventual goal is one cohesive addon with internally independent modules, supported by a separate set of native interface textures and optional themes for compatible external addons. It should look and feel like one interface without becoming one fragile piece of code.
@@ -33,6 +39,11 @@ Every feature will be reviewed against the following standard:
 
 Features based on contextual, aggregated, inferred, or packet-derived information require individual review even when they are technically possible.
 
+The sole approved exception is D-014/Q-003: the current enemy target may show
+observed player-initiated debuffs/effects with estimated timers. This is an
+explicit project-boundary revision, not a claim of native equivalence and not a
+general authorization for packet-derived combat information.
+
 ### Preserve intentional friction
 
 FFXI's inventory, equipment, currency, Mog House, and related menu systems are part of the game's intended experience. The project will not add persistent inventory-capacity indicators, storage summaries, gil tracking, market values, session earnings, or other tools that reduce those systems to passive HUD data.
@@ -48,7 +59,7 @@ The overlay will load as a single addon, but each major system should remain ind
 Screen space must be earned. The interface will prioritize information the player actually looks at during combat and remove redundant displays.
 
 - The party list is the primary group-combat information center.
-- Player, target, target-of-target, and casting information belong near the action.
+- Player, target, and player-casting information belong near the action.
 - The bottom-center HUD is a unified family of utilities rather than a collection of unrelated overlays.
 - The minimap is the single directional display; the redundant native compass is not part of the intended layout.
 - Important timing information should be immediately legible without flooding the screen.
@@ -101,20 +112,22 @@ Official references:
 | System | Intended purpose | Current direction |
 |---|---|---|
 | Player frame | Compact HP, MP, TP, identity, and casting information near the avatar | Contextual and configurable; replaces the redundant large player HUD |
-| Target frame | Clear information about the current target | Mirrored with the player frame; supports target casting |
-| Target-of-target | Present native target relationship information more clearly | Include only after confirming the native-information boundary |
-| Party frames | Primary six-person combat display | Individual stacked unit frames with strong HP, MP, TP, targeting, job/subjob, and level presentation |
-| Alliance frames | Compact information for Parties A, B, and C | WoW-style raid-frame concept adapted to FFXI's simpler requirements |
-| Trust-level indication | Help the player notice when a summoned trust is below the player's level | Level text treatment only; exact data availability requires verification |
-| Cast display | Show current player and target casting clearly | Visually integrated with the combat HUD |
+| Target frame | Clear information about the current target | Mirrored with the player frame; target casting is excluded; observed player-initiated effects may use clearly estimated timers under D-014 |
+| Target-of-target | Passive target-relationship display | Rejected and excluded from the core addon |
+| Party frames | Primary group-combat display | Party A uses the approved six-slot group template, omits the local player outside an alliance, and retains strong HP, MP, TP, job/subjob, selection highlighting, and direct user-initiated targeting |
+| Alliance frames | Compact information for Parties A, B, and C | Three identical six-slot group stacks using Party A's shared configuration; active alliance groups include the local player |
+| Trust-level indication | Compare a trust's level with the player | Rejected and excluded from the core addon |
+| Cast display | Show current player casting clearly | Visually integrated with the player frame; target casting is excluded |
 | Minimap | Provide compact location and direction information | Round, centered default; replaces the need for the native compass |
 | Hotbars | Present player-configured abilities in a cohesive utility dock | Multiple layout presets plus custom positioning |
 | Experience bar | Display native experience or limit-point progress | Wide foundation along the bottom-center HUD |
-| Timing system | Unify active buffs, debuffs, magic recasts, job-ability recasts, and related native timing information | Icons, bars, or hybrid views with sorting and layout control |
+| Timing system | Unify active buffs, debuffs, magic recasts, job-ability recasts, and eligible targeted-party status icons | Player icons, user-selected recast bars, optional hybrid/threshold views, and no inferred priority |
+| Job/pet unit frames | Present job-specific unit information that FFXI natively displays | Pet-frame direction retained; exact pet families and fields remain pending under Q-011B |
 | Notifications | Show restrained, temporary native event information | Unified fading feed instead of a separate background tab for each line |
-| Loot history | Provide recent native loot messages on demand | Collapsible history; no gil values, market values, or inventory totals |
+| Loot history | Provide recent native loot messages on demand | Collapsible history; no gil messages, tracking, aggregation, market values, or inventory totals |
+| Treasure pool | Restyle the currently available native pool on demand | Optional faithful mirror; no alerts, history, analytics, valuation, inventory context, or lot/pass controls |
 | Synthesis history | Organize native crafting results without adding predictions or hidden information | Collapsible log for results, quality, skill-ups, and material-loss messages |
-| Chat display | Modernize chat readability while retaining native behavior where practical | Two configurable decorative displays with native input preferred |
+| Chat display | Modernize chat readability while retaining native behavior | Two configurable decorative log displays; native input, auto-translate, and tell history remain native |
 | Configuration and edit mode | Control modules, layouts, profiles, and positioning | Cohesive themed interface with live positioning and recovery controls |
 
 ### Native interface and texture package
@@ -142,7 +155,8 @@ The Vana'diel HD UI installer should not silently modify another addon's files. 
 ### Confirmed exclusions
 
 - Enemy list
-- Automated targeting, action selection, or command execution
+- Automated targeting, action selection, or command execution; narrowly
+  approved direct native-equivalent interactions remain user initiated
 - Predictive combat calculations
 - Hidden or normally unavailable game information
 - Large redundant horizontal player-status display
@@ -161,26 +175,38 @@ The Vana'diel HD UI installer should not silently modify another addon's files. 
 
 The party list is currently the highest-priority gameplay component.
 
-The default six-person layout should present each member as an individual frame stacked vertically, without portraits. Each frame should prioritize:
+Each member appears in an individual frame without a portrait. Each frame should prioritize:
 
 1. Name
 2. HP
 3. MP
 4. TP
-5. Level and trust-level difference
+5. Level, only where its native source and timing are documented
 6. Main job/subjob abbreviations
-7. Current target selection
-8. Important status effects
-9. Optional, low-priority distance
+7. The local player's current roster selection
+8. Important status effects, limited to approved native information
 
-The system should offer at least two layout families:
+The approved direction uses three identical six-slot group stacks for Parties
+A, B, and C. Party A is the shared configuration template; its options
+automatically apply to Parties B and C. Party-group labels can be enabled or
+disabled.
 
-- **Stacked party frames:** richer frames for normal play, suitable for lower-right or mid-left placement.
-- **Raid-style frames:** compact horizontal or grid frames that healers and support players can position near the center of the screen.
+Configuration mode previews all three groups at full capacity for aesthetic and
+placement work. Gameplay shows only the groups expected by the game. Outside an
+alliance, Party A omits the local player and shows up to five other members. In
+an alliance, the active groups include the available alliance roster, including
+the local player.
 
-Alliance mode should arrange Parties A, B, and C as distinct, compact groups with HP and targeting given the greatest prominence. TP, MP, and priority status effects remain available but may use denser presentation.
+User font options include font-size control. Production name-field width and
+maximum character capacity remain pending testing against the longest currently
+available in-game Trust name. The approved selection highlight uses a restrained
+Bright Brass edge and directional marker.
 
 Background options should include an opaque plate for covering unavoidable native lower-right elements and a transparent mode for placement elsewhere.
+
+Mouse/controller activation may select a roster member only as a direct,
+user-initiated equivalent of native targeting. Passive display of another
+member's target and numeric or continuous distance are excluded.
 
 ### Center HUD and utility dock
 
@@ -199,27 +225,42 @@ Proposed hotbar presets:
 
 Status timers and recasts should be treated as one time-sensitive information system with different views, not unrelated text lists.
 
-Possible categories:
+Approved categories:
 
-- Current cast
+- Player cast
 - Player buffs
 - Player debuffs
-- Target effects
+- Status icons without timers for the targeted, subtargeted, or one manually
+  locked human party member
+- Observed player-initiated debuffs/effects on the current enemy target, with
+  estimated timers under D-014
 - Magic recasts
 - Job-ability recasts
 - Other native ability recasts
 
-Possible display modes:
+Approved display modes:
 
-- Icons with numeric countdowns
-- Horizontal timer bars
-- Hybrid icons that become bars below a threshold
-- Hotbar cooldown overlays
-- Hidden until a configurable remaining-time threshold
+- Player-status icons with native-equivalent numeric countdowns
+- Compact bars for user-selected recasts
+- Optional hybrid and user-configured threshold/color treatments
+- Hotbar cooldown overlays for otherwise approved recasts
 
 The guiding rule is:
 
 > Show important timers continuously, ordinary timers contextually, and everything else only on demand.
+
+“Important” is always explicitly pinned, filtered, or configured by the user.
+The core addon will not infer tactical priority or copy third-party suppression
+or cancellation code/assets. To preserve behavior lost when the native tray is
+suppressed, a deliberate right-click may cancel a currently cancellable
+local-player status. The addon sends at most one native removal request for that
+selected status per click. Target/party icons are not actionable, and automatic,
+bulk, queued, retried, repeated, or chained cancellation is excluded.
+
+While the replacement tray is active, it will suppress the redundant native
+player status icons using an optional, reversible, version-validated method that
+fails closed and has documented recovery. Suppression may activate only when
+the replacement cancellation interaction is available.
 
 ### Notifications, loot, and synthesis
 
@@ -247,7 +288,16 @@ The preferred direction is a custom scalable display with native chat input reta
 - Matching decorative construction
 - Ability for the right window or another opaque module to cover unavoidable native lower-right UI elements
 
-A complete replacement of controller text entry, auto-translate, tell history, and other native input behavior is outside the initial target unless technical investigation proves it necessary.
+The default layout places Chat Window 1 in the lower-left corner and a mirrored
+Chat Window 2 in the lower-right. An alternate preset uses only the lower-left
+window and places central-HUD Style 3 in the lower-right coverage position.
+Each chat frame supports 8, 12, or 16 exposed lines by changing height only.
+Background opacity is user configurable from 0–100 percent and defaults to
+100 percent/full opaque.
+
+A replacement of controller text entry, auto-translate, tell history, or other
+native input behavior is excluded. Technical verification must establish that
+the two decorative log displays preserve reliable native filtering and input.
 
 ## Installation template
 
@@ -291,7 +341,8 @@ VanadielHDUI/
 ├── external-themes/        # Optional themes for compatible addons — TBD
 ├── presets/                # Tested layout and configuration presets — TBD
 ├── docs/                   # Detailed guides and reference images — TBD
-├── LICENSE                 # Project license — TBD
+├── LICENSE                 # GNU GPL version 3 license text
+├── LICENSE-NOTICE.md       # GPL-3.0-or-later project grant and copyright
 ├── THIRD-PARTY-NOTICES     # Required attribution and license notices — TBD
 └── README.md
 ```
@@ -354,13 +405,23 @@ For each theme:
 - [ ] Saved positions persist after reload.
 - [ ] Player and target frames update correctly.
 - [ ] Party and alliance frames update correctly.
-- [ ] Current party target is unmistakable.
-- [ ] Trust level and job information are accurate.
+- [ ] The local player's selected party/alliance row is unmistakable.
+- [ ] Job information is accurate; no trust-level comparison is displayed.
 - [ ] HP, MP, and TP values update correctly.
-- [ ] Player and target cast displays behave correctly.
+- [ ] Player casting behaves correctly; no target-cast display is present.
 - [ ] Minimap position and orientation are correct.
 - [ ] Hotbar interaction remains controller-safe.
-- [ ] Buff, debuff, and recast timers are accurate.
+- [ ] Approved buff, debuff, and recast timers match their documented native
+      source and precision, or the explicitly estimated D-014 source.
+- [ ] Eligible targeted-party status icons appear without duration countdowns.
+- [ ] Current-enemy target effects are player-initiated, observed, visibly
+      estimated, and invalidated under D-014.
+- [ ] Native player status icons are suppressed only while the replacement tray
+      is active and recover after unload or a failed validation.
+- [ ] A right-click cancels only a current local-player status marked
+      cancellable, sends one request, and never affects target/party icons.
+- [ ] Stale, absent, invalid, or non-cancellable statuses produce no
+      cancellation request.
 - [ ] Notifications do not disclose excluded inventory or value information.
 - [ ] Chat filters and input behavior remain reliable.
 - [ ] Native textures appear correctly at the supported resolution.
@@ -545,6 +606,10 @@ Projects or products considered as behavioral or layout references include:
 
 Before any public release, this section must be replaced or supplemented by a complete `THIRD-PARTY-NOTICES` record identifying every distributed dependency, incorporated source fragment, modified work, asset, license, copyright notice, and required attribution.
 
+Original project material designated as covered by the project license is
+licensed under `GPL-3.0-or-later`, with
+`Copyright © 2026 Xpie`. See [LICENSE-NOTICE.md](LICENSE-NOTICE.md).
+
 ## Roadmap
 
 1. Complete the remaining gameplay audit.
@@ -561,15 +626,7 @@ Before any public release, this section must be replaced or supplemented by a co
 
 ## Current open questions
 
-- Exact behavior and native availability of target-of-target information
-- Reliable trust identification and level reporting
-- Target-selection interaction from party and raid-style frames
-- Native treasure-pool behavior and whether any modernization belongs in scope
-- Job-specific information that FFXI already communicates and may benefit from clearer presentation
+- Exact pet families, fields, native sources, visibility, and any non-pet
+  job-specific indication under Q-011B
 - Most reliable native source for synthesis history
-- Practical limits of custom chat display while preserving native input
-- Supported resolutions and scaling strategy
-- Clean theme/preset support for EquipMon
-- Final project and release license
 - Exact installation, updating, and rollback procedures
-

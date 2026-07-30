@@ -1,7 +1,8 @@
 # Vana'diel HD UI — Design Specification
 
 **Status:** Transferred baseline; design and gameplay audit  
-**Last updated:** 2026-07-29  
+**Last updated:** 2026-07-30
+
 **Authority:** Approved decisions in `DECISIONS.md` override this specification.
 
 This document converts the repository README and the named design areas from the
@@ -24,7 +25,7 @@ The intended product has three separately installed layers:
 
 The core addon must not silently modify either of the other layers.
 
-## 2. Non-negotiable information boundary
+## 2. Information boundary
 
 A field or behavior is eligible only when all of the following are true:
 
@@ -34,7 +35,8 @@ A field or behavior is eligible only when all of the following are true:
 - The display does not expose hidden, normally unavailable, predicted, or
   inferred information.
 - The behavior does not automate an action, reaction, target, command, or
-  decision.
+  decision. A separately approved direct user action that recreates a suppressed
+  native interaction is not automation.
 - The display does not bypass an intentional inventory, equipment, currency,
   discovery, or Mog House interaction.
 - The change does not create a meaningful gameplay advantage beyond
@@ -43,6 +45,11 @@ A field or behavior is eligible only when all of the following are true:
 Technical accessibility is not approval. Packet-, memory-, chat-, or
 context-derived data must be reviewed field by field against the native player
 experience. If equivalence cannot be demonstrated, the field is omitted.
+
+D-014 is the only approved exception: the current enemy target may show
+observed player-initiated effects with estimated remaining times. This is an
+explicit, documented gameplay-boundary revision, not native equivalence and not
+a precedent for other packet-derived displays.
 
 ### 2.1 Allowed event presentation versus prohibited tracking
 
@@ -73,9 +80,11 @@ That allowance does not permit:
   should remain compact.
 - Screen space must be earned and redundant displays removed.
 
-Exact tokens for color, typography, dimensions, spacing, animation, safe areas,
-and scaling remain unresolved and must eventually live in a design-system
-specification.
+Exact tokens for color, typography, dimensions, spacing, animation, and safe
+areas remain design deliverables and must eventually live in a design-system
+specification. Q-010 controls the approved scaling and validation targets.
+The candidate tokens and first concept-art evaluation are recorded in
+`VISUAL-SYSTEM.md`; they remain proposed until Xpie explicitly approves them.
 
 ## 4. Combat HUD
 
@@ -100,61 +109,107 @@ Required behavior:
   richer party frame unnecessarily; and
 - no inventory, gil, equipment, prediction, or automated-action information.
 
-Exact geometry, numeric formatting, contextual visibility rules, and the
-relationship between the frame and cast bar remain to be specified.
+Approved visual treatment under D-015:
+
+- use a two-line identity area with the player name above
+  `JOB LVL/SUBJOB LVL`;
+- do not show level as a separate indicator;
+- make HP approximately 10 percent taller than equal-height MP and TP bars;
+- integrate three small TP-threshold pips tightly with the lower-right edge;
+- use the approved horizontal bar and inset-frame style;
+- reduce non-bar dark-blue infill approximately 20 percent from concept v2; and
+- use the concept-v3 ornament scale as the current direction.
+
+Exact pixel geometry, numeric formatting defaults, contextual visibility rules,
+and production alpha values remain to be specified.
+
+The player and target families are expected to support a user-facing style
+choice:
+
+- **Style 1:** concept v3, preliminarily approved under D-015.
+- **Style 2:** frameless treatment preliminarily approved under D-016. Identity
+  text floats without an outer plate; the unified inner resource container
+  remains.
+
+Both styles present identical approved information and interaction. Style
+selection must not change field availability, timing, precision, or behavior.
 
 ### 4.2 Target frame
 
 The target frame is the visual counterpart to the player frame. It should use
 mirrored or complementary geometry so the two read as one combat-HUD family.
 
-Candidate information from the transferred baseline:
+Approved information:
 
 - target identity/name;
 - target HP presentation that matches information available natively;
 - selection/relationship treatment; and
-- target casting, but only after the native-information and technical review in
-  `DECISIONS.md`.
+- native status icons without timers when the target is an eligible human party
+  member under Q-003; or
+- observed player-initiated debuffs/effects with estimated timers when the
+  current target is an enemy, strictly under D-014/Q-003.
 
 The target frame must not add predicted time-to-kill, threat, resistances,
-hidden exact values, encounter intelligence, or other inferred/unknown data.
-Mirroring is a visual relationship, not a requirement that every player field
-also exist for targets.
+hidden exact values, encounter intelligence, unobserved target effects, effect
+potency, enemy-originated effects, or other inferred/unknown data. Estimated
+target-effect timers must be visually distinguishable from authoritative
+native timers and clear on observed removal, death/despawn, zoning, logout,
+reload, stale target identity, or expiry. Mirroring is a visual relationship,
+not a requirement that every player field also exist for targets.
+
+Under D-015, retain the approved horizontal/inset visual family, reduce the
+concept-v2 dark-blue infill approximately 20 percent, reduce the right ornament
+approximately 10 percent, and use a compact round Check-indicator housing at the
+lower-left edge. Exact alpha and dimensions remain production deliverables.
+
+The approved D-017 Check family covers nine native results:
+
+1. Too Weak to be Worthwhile.
+2. Incredibly Easy Prey.
+3. Easy Prey.
+4. Decent Challenge.
+5. Even Match.
+6. Tough.
+7. Very Tough.
+8. Incredibly Tough.
+9. Impossible to Gauge.
+
+Icons must share identical outer dimensions and communicate state through both
+color and internal geometry rather than color alone. They must contain no text
+abbreviation. Exact Ashita result values and availability require technical
+verification before implementation.
+
+The bordered medallion construction is approved for inclusion in the final
+draft. Its complete brass bezel counts as part of the icon bounds. Both Style 1
+and Style 2 target frames must revise the lower-left Check socket to fit that
+full diameter with clear padding, without clipping, non-uniform scaling, or a
+second competing bezel. The two styles should use the same icon diameter and
+socket relationship wherever their different outer-frame treatments permit.
+Exact pixel dimensions remain subject to deterministic production recreation
+and small-size legibility testing.
 
 ### 4.3 Target of target
 
-Target-of-target is a reserved combat-HUD component, not yet authorized for
-implementation. Its purpose is to present a target relationship more clearly
-only if that relationship is already natively available to the player in the
-same context.
-
-Before approval, the project must document:
-
-- the native equivalent and when it is visible;
-- the exact proposed fields;
-- the source and update timing;
-- whether the display creates persistent knowledge that native FFXI does not;
-  and
-- behavior for missing, stale, self, party, trust, player, and NPC targets.
-
-No assumptions about click-to-target behavior or continuous availability are
-approved.
+Target-of-target is rejected under Q-001. The combat HUD must not reserve,
+populate, or expose a passive target-of-target component.
 
 ### 4.4 Casting
 
 Casting is part of the combat HUD rather than a detached general-purpose timer.
 
 - Player casting belongs with or directly adjacent to the player frame.
-- Target casting belongs with or directly adjacent to the target frame only if
-  approved after native-equivalence review.
+- Target casting is rejected under Q-002.
 - Presentation should make active casting immediately legible without adding
   prediction, decisions, interruption automation, or unavailable spell
   information.
 - Cast data must be cleared safely on completion, interruption, zoning, target
   change, invalid state, and addon reload.
 
-Exact labels, progress direction, latency treatment, interruption cues, and
-whether recast information appears in the same geometry remain unresolved.
+Exact player-cast labels, progress direction, latency treatment, interruption
+cues, and whether recast information appears in the same geometry remain design
+details. D-015 fixes the current visual treatment: no cast icon, outer
+background, or enclosing decorative plate; only the cast name and approved
+inset framed duration bar float directly over the game view.
 
 ### 4.5 Status and recast tray
 
@@ -163,36 +218,95 @@ with multiple views, not unrelated text lists. The tray should visually belong
 to the combat HUD and center utility family while remaining independently
 positionable.
 
-Eligible categories, subject to native-source verification:
+Approved categories:
 
 - player buffs;
 - player debuffs;
+- current-enemy target effects under D-014;
 - magic recasts;
 - job-ability recasts; and
 - other recasts the game natively provides.
 
-Provisional categories requiring additional boundary review:
+Targeted-party treatment:
 
-- target effects; and
-- any status duration not natively communicated with equivalent precision.
+- show status icons without duration countdowns for the current target or
+  subtarget only when it is a human party member;
+- allow one manually locked human party member as a native-focus equivalent;
+  and
+- exclude enemies, NPCs, trusts, fellows, pets, and alliance members.
 
-Possible views, not yet approved defaults:
+Current-enemy treatment:
 
-- icons with numeric countdowns;
-- horizontal timer bars;
-- a hybrid in which an icon becomes a bar below a threshold;
-- cooldown overlays on player-configured hotbars; and
-- threshold-based visibility.
+- accept only effects observed as initiated by a player character;
+- present remaining time as an estimate derived from the observed action/result
+  and a reviewed duration table;
+- do not imply server-authoritative status, potency, resistance, source
+  ownership beyond the observed actor, or tactical priority; and
+- show it only with the current target frame, while retaining tracked state no
+  longer than needed for correct invalidation.
 
-The governing priority is: important timers continuously, ordinary timers
-contextually, and everything else on demand. Sorting must not imply tactical
-recommendations or hidden priority.
+Approved views:
+
+- player-status icons with native-equivalent numeric countdowns;
+- compact bars for user-selected native recasts;
+- an optional hybrid treatment;
+- optional remaining-time color swatches and user-configured thresholds; and
+- cooldown overlays on player-configured hotbars where the recast is otherwise
+  approved.
+
+Under D-018, status artwork uses compact square tiles with a thin understated
+Aged Brass border, restrained corners, a narrow dark separator, and a subtle
+color-complementary dark field behind the central glyph. This treatment is
+distinct from the round Check medallions. Countdown text is rendered separately
+by the addon below the tile and must never be baked into the icon texture.
+Production artwork must retain color-plus-silhouette recognition at the
+intended HUD size and remain legible without relying on the timer text.
+Validate each icon at 32×32 px. A simple crisp primary silhouette and stable
+color cue must carry recognition; fine detail, gradients, and antialiasing are
+secondary finish and must not be necessary to tell icons apart.
+
+The complete eleven-sheet icon family is approved for the final draft. Before
+individual icon files are generated, all sheets must be reconciled to one
+border template with consistent thickness, inset, corners, separator, and
+outer bounds. Once individual files exist, perform a separate filename audit:
+compare each icon's depicted meaning with its source filename and coverage-map
+entry, and correct any naming or mapping discrepancy before final asset
+approval.
+
+“Important” means explicitly pinned, filtered, or configured by the user. The
+addon must not infer tactical priority.
+
+Local-player status cancellation:
+
+- a deliberate right-click on a displayed local-player status recreates the
+  native tray's cancellation behavior;
+- expose the interaction only when the current game resource marks the status
+  cancellable, and revalidate that status at activation;
+- send at most one native status-removal request (`0x0F1`) for the selected
+  status per deliberate click;
+- make target, party-member, and estimated enemy-target effect icons
+  non-actionable; and
+- fail without sending for stale, absent, invalid, non-cancellable, or ambiguous
+  status state.
+
+Cancellation must never run from hover, timers, thresholds, filtering, status
+changes, or other context. Bulk cancellation, queues, retries, repeated sends,
+automatic selection, and chained actions are prohibited.
+
+When the replacement player-status tray is active, suppress the redundant
+native player status-icon display. Suppression must be optional, reversible,
+version-validated, fail closed on an unknown game build or mismatched state,
+restore native presentation on normal unload and recoverable errors, and ship
+with explicit recovery instructions. A technical prototype must choose the
+safest viable method; Q-006 approves the result, not a specific memory patch.
+Suppression must not remove native cancellation without replacement: it may
+activate only when the approved replacement interaction is available.
 
 ### 4.6 Party frames
 
-The party list is the primary six-person group-combat information center and
-the highest-priority gameplay component. Default presentation is a vertical
-stack of individual frames without portraits.
+The party list is the primary group-combat information center and the
+highest-priority gameplay component. Its approved presentation uses three
+identical six-slot group stacks for Parties A, B, and C without portraits.
 
 Information priority from the transferred baseline:
 
@@ -200,28 +314,62 @@ Information priority from the transferred baseline:
 2. HP.
 3. MP.
 4. TP.
-5. Level and a possible trust-level difference treatment.
+5. Level, only where the native source and equivalent timing are documented.
 6. Main-job/subjob abbreviations.
-7. Current target selection, subject to source and boundary verification.
+7. The local player's current roster selection.
 8. Important status effects, limited to approved native information.
-9. Optional low-priority distance, subject to source and boundary verification.
 
-Required layout families:
+D-021 approves Proof 3's three-group direction and rejects the single-stack and
+2×3 raid proofs. Party A is the canonical configuration template; all
+party-frame options applied to Party A automatically apply to Parties B and C.
+Party-group labels must have a user enable/disable toggle.
 
-- richer stacked party frames for ordinary play; and
-- compact raid-style horizontal or grid frames suitable for healers/support
-  players nearer the screen center.
+Configuration mode shows all three groups at full six-slot capacity for
+aesthetic and placement decisions. Those entries are preview-only. During
+gameplay, only the groups expected by the unmodified game are visible:
 
-Alliance mode should keep Parties A, B, and C visually distinct. HP and targeting
-have the greatest prominence; MP, TP, and approved status information may use a
-denser treatment.
+- outside an alliance, Party A shows up to five other party members and omits
+  the local player; and
+- in an alliance, the active Party A/B/C frames show the available alliance
+  roster, including the local player, up to the game's maximum available
+  alliance membership.
+
+Each portrait-free cell uses dominant HP, subordinate MP/TP, readable name/job
+information, and the approved restrained Bright Brass selection edge and
+directional marker. User font options include font-size control. Production
+name-field width and maximum displayed character count remain pending testing
+against the longest currently available in-game Trust name. Level numbers
+remain conditional on their field-level source review. Only the selected human
+local-party example may show native-focus status icons; approval does not
+expand status visibility to every party/alliance member. Production geometry
+and minor refinements remain implementation-time validation items.
+
+### 4.7 Job-specific and pet unit frames
+
+Q-011B preserves a job-specific unit-frame direction, primarily for pets, but
+does not yet approve a field list. Candidate pet families are Beastmaster
+charm/jug pets, Summoner avatars, Puppetmaster automatons, and Dragoon wyverns.
+
+Before any pet or other job-specific element advances, document:
+
+- the included job/entity family;
+- every displayed field and its native on-screen source;
+- update timing, absence/stale-state handling, and visibility rules; and
+- whether the presentation is a unit frame or another job-specific indicator.
+
+XIUI's pet bar is a behavior reference, not the specification. Its level,
+distance, status, target, MP/TP, and command-recast displays are not approved by
+association. Numeric distance and pet-target data remain rejected under Q-005,
+and estimated job recasts require a separate exception if native equivalence
+cannot be established.
 
 Required options include opaque backing, for covering unavoidable native
 lower-right elements, and a transparent mode for placement elsewhere.
 
-Displaying a member's target is separate from interaction. Mouse/controller
-click-to-target behavior is not approved until it is confirmed to be a direct,
-user-initiated equivalent of native targeting and technically safe.
+Mouse/controller activation may select that roster member only as a direct,
+user-initiated equivalent of native targeting. The interaction must not select
+for the player, issue a command, or chain an action. Another member's target and
+numeric or continuous distance are excluded.
 
 ## 5. Notifications and histories
 
@@ -237,8 +385,9 @@ Notifications are a restrained, temporary presentation of native events.
 - Key-item events may receive a distinct FFXI-inspired visual treatment.
 - Important native failures, including inventory-full messages, are allowed as
   events.
-- Duplicate grouping is provisional until its aggregation behavior is defined
-  and reviewed.
+- Collapse exact duplicates only when native event type, source, and verbatim
+  text all match within two seconds. Replace the retained line with a `×N`
+  count; do not group merely similar messages or calculate summaries.
 
 The feed must not append vendor/market values, inventory totals or remaining
 capacity, session earnings, predictions, or metadata the native event did not
@@ -250,9 +399,9 @@ Loot history is an on-demand record of recent native loot messages, opened from
 the center HUD, a slash command, or a configurable binding. It is not a
 persistent inventory panel.
 
-It must not show gil valuation, market/vendor value, inventory totals, or
-remaining capacity. Whether literal native gil-acquisition messages belong in
-loot history, the general event feed, or chat is unresolved.
+It must not show gil messages or values, market/vendor value, inventory totals,
+or remaining capacity. Literal native gil-acquisition messages remain transient
+in native chat or the temporary feed.
 
 ### 5.3 Synthesis history
 
@@ -261,7 +410,16 @@ skill-up, and material-loss messages. It must not predict outcomes, calculate
 profit, add market values, or infer hidden crafting state. Its reliable native
 source remains to be verified.
 
+### 5.4 Treasure pool
+
+The treasure-pool module is an optional, on-demand presentation of the currently
+available native pool. It may reorganize the same visible entries but must not
+add alerts, history, analytics, valuation, inventory context, prediction, or lot
+or pass controls.
+
 ## 6. Center utility dock
+
+### 6.1 Utility dock
 
 The round bottom-center minimap is the intended visual anchor. Hotbars,
 experience/limit-point progress, approved recasts, and contextual utilities
@@ -270,6 +428,45 @@ share a construction language but remain independently configurable.
 The minimap is the sole intended directional display; the redundant native
 compass is excluded from the target layout. Proposed hotbar presets remain those
 listed in the README and are not yet final defaults.
+
+D-019 defines three central-HUD layout families. Style 1 uses a centered round
+minimap with split hotbar wings and is approved as a concept direction. Style 2
+uses uninterrupted hotbar rows with the round minimap docked at one horizontal
+edge and is approved for the final draft; the user may reverse the dock between
+right and left. Dock reversal must not change fields, behavior, slot order, or
+module availability.
+
+Style 3 is a proposed compact lower-right console that occupies the footprint
+otherwise intended for a masking chat surface. Unlike Styles 1 and 2, it uses
+an opaque or nearly opaque navy backing because covering unsuppressible native
+lower-right UI is the preset's functional purpose. It contains the central-HUD
+utility family, not chat content, and must not replace native chat behavior.
+Exact geometry, coverage dimensions, slot counts, labels, default selection,
+and production artwork remain pending.
+
+### 6.2 Chat display
+
+Provide two scalable decorative log displays with independent native-category
+filters, presentation settings, and placement. Native text input, controller
+entry, auto-translate, and tell history remain native; the addon must not replace
+them. Filtering and input reliability require technical verification.
+
+Under D-020, Chat Window 1 defaults to the lower-left corner and Chat Window 2
+defaults to the lower-right as its horizontal mirror. The user may instead
+select a single lower-left Chat Window 1 and place central-HUD Style 3 in the
+lower-right coverage position.
+
+Each chat frame offers exactly three exposed-line choices: 8, 12, and 16.
+These choices use one fixed-width construction. Only body height changes by
+integer text-row increments; header, border, corners, ornament, typography,
+line height, padding, and controls remain unchanged. Mirrored Window 2 changes
+directional geometry only, not dimensions or content capability.
+
+Chat-frame background opacity is independently user configurable from 0 to
+100 percent inclusive and defaults to 100 percent/full opaque. At zero
+background opacity, text legibility treatment and interaction behavior remain
+subject to validation; opacity must not change filtering, message availability,
+input behavior, or persistence.
 
 ## 7. Configuration requirements
 
@@ -287,21 +484,32 @@ is expected to provide:
 - safe import/export or backup only if it can be implemented without hidden
   state or fragile coupling.
 
+The canonical layout is 1920×1080. Initial validation targets are 1920×1080,
+2560×1440, and 3840×2160. Layout scaling is uniform from display height, uses
+pixel snapping where needed, and includes a user override. Ultrawide and 16:10
+layouts must remain anchor-compatible but are not supported until validated.
+
 Configuration must not turn informational modules into automation.
 
 ## 8. Confirmed exclusions
 
 - Enemy list.
-- Automated targeting, action selection, or command execution.
+- Automated targeting, action selection, or command execution. Direct
+  user-initiated interactions approved under Q-005 and Q-006 are not automation.
 - Predictive combat calculations or tactical recommendations.
 - Hidden or normally unavailable game information.
+- Target-of-target and target casting.
+- Trust-level comparison, passive party-member target data, and numeric or
+  continuous distance.
 - Large redundant horizontal player-status display.
 - Redundant in-game compass.
 - Inventory capacity, free-space, storage, or combined-inventory indicators.
 - Inventory-full gauges and proactive space warnings.
 - Gil totals, session earnings, or enhanced gil tracking.
+- Gil messages in on-demand history.
 - Item vendor, market, or projected gil values.
 - Equipment display in the core addon.
+- Target-effect data outside the D-014 exception.
 - Any feature primarily intended to bypass FFXI's native inventory, equipment,
   currency, discovery, or Mog House experience.
 
@@ -309,7 +517,8 @@ Configuration must not turn informational modules into automation.
 
 No component moves from design to implementation until it has:
 
-1. a named native source/equivalent for every displayed field;
+1. a named native source/equivalent for every displayed field, or an explicit
+   approved exception such as D-014;
 2. a boundary review covering persistence, precision, inference, and timing;
 3. defined invalidation behavior for zoning, target change, party change,
    death, logout, reload, and unavailable data;
