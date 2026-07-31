@@ -1,6 +1,6 @@
 # Core Foundation Smoke Test
 
-**Last run:** 2026-07-30
+**Last run:** 2026-07-31
 
 **Runtime:** LuaJIT 2.1.1779665312
 
@@ -14,7 +14,7 @@ Use a LuaJIT/MoonJIT-compatible interpreter:
 .\tests\smoke.ps1 -Lua <path-to-luajit-or-lua>
 ```
 
-The test entry point is `tests/run.lua`. On 2026-07-30 it was executed with
+The test entry point is `tests/run.lua`. On 2026-07-31 it was executed with
 LuaJIT 2.1.1779665312 installed through Scoop. It was also executed with the
 transient Fengari CLI as an independent Lua parser/runtime check.
 
@@ -33,8 +33,11 @@ Result:
 [PASS] event router registration and cleanup are deterministic
 [PASS] configuration theme restores scoped ImGui style state
 [PASS] layout editor commits generic module or element targets once on release
+[PASS] preview rendering composes global and module opacity
+[PASS] preview rendering composes global and module scale into window size
+[PASS] party preview font size applies across all preview groups
 
-12 test(s), 0 failure(s)
+15 test(s), 0 failure(s)
 ```
 
 This run does not by itself prove Ashita binary compatibility or in-game ImGui
@@ -51,7 +54,7 @@ environment on 2026-07-30. The exact Ashita build remains to be recorded.
 | Addon loads | Passed |
 | Foundation-loaded notice identifies gameplay modules as placeholders | Passed |
 | `/vhd` opens the configuration shell | Passed |
-| Clicking Preview mode does not fault the addon or modules | Passed before the scaling experiment; the later regression-producing experiment has been reverted |
+| Clicking Preview mode does not fault the addon or modules | Passed |
 | Enabling a placeholder changes `disabled` to `running` | Passed in the earlier pass |
 | Disabling the placeholder returns it to `disabled` | Passed |
 | `/vhd preview on` shows only preview-labeled, non-live data | Passed |
@@ -59,31 +62,22 @@ environment on 2026-07-30. The exact Ashita build remains to be recorded.
 | Group mode moves every declared element by the same delta | Passed |
 | Party A/B/C and six slots per group are unobscured and visually verifiable | Passed |
 | Party group-label visibility applies to all three shared groups | Passed |
-| Party title font-size changes apply to all three shared groups | Failed; replacement rendering architecture pending |
+| Party title font-size changes apply to all three shared groups | Passed |
 | `/vhd preview off` clears previews and retains disabled state | Passed |
 | Position and opacity controls work and persist across unload/reload | Passed |
-| Module scale changes rendered module size | Failed; replacement rendering architecture pending |
-| Global scale changes every rendered module size | Failed; replacement rendering architecture pending |
-| Enabled placeholder appears outside preview and disappears when disabled | Failed; no non-preview scaffold surface is currently rendered |
+| Module scale changes rendered module size | Passed |
+| Global scale changes every rendered module size | Passed |
+| Enabled placeholder appears outside preview and disappears when disabled | Not applicable; no non-preview scaffold surface is designed for the current core phase |
 | Passing setting values persist across unload/reload | Passed |
 | `/vhd reset module party` resets only the party block | Passed |
 | `/vhd reset all` resets scaffold settings and exits preview | Passed |
 | Addon unload clears preview/configuration windows without an error | Passed |
 
-The reported pass completed the drag-mode, unobscured party, shared-label,
-party-only reset, reset-all, and cleanup checks. It exposed four implementation
-gaps: font size, module scale, and global scale were persisted but not applied,
-and a running placeholder had no non-preview render path.
-
-An experimental correction was subsequently reverted at Xpie's direction. On
-load it warned that font scaling was disabled and displayed the Player Frame
-preview before preview was enabled. Turning preview off removed only some
-content and left remnants from multiple modules. Window dimensions changed
-under module/global scaling, but text did not scale proportionately. The
-reverted code used an optional ImGui window-font scaling call and rendered an
-enabled placeholder outside preview. Neither behavior remains in the current
-build. Focused scaling and font-size retesting is paused until an original,
-explicit-size text renderer is implemented.
+The later `v0.1.1` preview-renderer work closed the earlier scaffold gaps for
+party title sizing and composed module/global scaling. The reverted
+window-font-scaling experiment remains historical context only; the current
+build uses original explicit-size preview text rendering and does not render an
+enabled placeholder outside preview.
 
 Copy `addon/VanadielHDUI` to the Ashita v4 `addons` directory, then:
 
@@ -104,15 +98,14 @@ Copy `addon/VanadielHDUI` to the Ashita v4 `addons` directory, then:
    pointer. Release, unload/reload, and confirm all final positions and the
    selected movement mode persist.
 10. Confirm the repositioned party preview shows Party A, B, and C with six
-   slots each.
+    slots each.
 11. Change the Party A group-label and font-size options; confirm all three
-   preview groups use the shared label visibility and title size.
+    preview groups use the shared label visibility and title size.
 12. Run `/vhd preview off`; confirm all preview windows disappear and disabled
-   modules remain disabled.
-13. Change a position, opacity, and enabled state; unload/reload and confirm the
-    settings persist for the current character. Scaling and visible
-    enabled-placeholder behavior remain deferred and must not be marked passed
-    from this build.
+    modules remain disabled.
+13. Change a position, opacity, scale, and enabled state; unload/reload and
+    confirm the settings persist for the current character. Do not expect a
+    non-preview placeholder surface merely from enabling a scaffold module.
 14. Run `/vhd reset module party`; confirm only the party block resets.
 15. Run `/vhd reset all`; confirm all scaffold settings reset and preview exits.
 16. Run `/addon unload VanadielHDUI`; confirm no preview or configuration

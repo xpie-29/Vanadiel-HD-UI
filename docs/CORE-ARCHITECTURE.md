@@ -303,6 +303,8 @@ require Ashita or FFXI. It covers:
 
 The suite is intended to run under LuaJIT/MoonJIT compatible with Ashita v4.
 Xpie's first in-game pass verified load/unload, lifecycle notices, responsive
-controls, persistence, and the placeholder enable-state transition. The
-remaining preview/reset items and exact Ashita-version compatibility are
-tracked in `CORE-SMOKE-TEST.md`.
+controls, persistence, and the placeholder enable-state transition. Follow-up
+in-game validation has now also confirmed preview drag/edit positioning,
+party-only reset isolation, composed preview opacity/scale behavior, shared
+Party A/B/C title sizing, and preview cleanup. The exact Ashita-version note
+remains tracked in `CORE-SMOKE-TEST.md`.

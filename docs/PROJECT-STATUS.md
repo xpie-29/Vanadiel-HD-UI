@@ -35,10 +35,7 @@ remain subject to in-game visual review.
 
 A follow-up checklist pass also confirmed preview-only labeling and absence of
 live data, preview shutdown behavior, full-reset behavior, position/scale/
-opacity/enabled persistence, and clean unload. Party A/B/C visual inspection
-and shared label/font verification remain pending because the forced
-placeholder positions overlap. Party-only reset isolation also remains
-pending. These are incomplete checks, not observed failures.
+opacity/enabled persistence, and clean unload.
 
 The core preview layout editor is now implemented to unblock those visual
 checks. While preview is active, each placeholder can be left-dragged.
@@ -46,8 +43,7 @@ Descriptor-declared multi-element modules can move independently or as a
 group; Party A/B/C default to independent positioning. Group mode shifts a
 shared base without discarding element offsets. Movement saves once on release
 through the existing configuration service and cancels if preview ends before
-release. This behavior has host-test coverage and awaits in-game
-reverification.
+release. This behavior has host-test coverage and is now reverified in game.
 
 The subsequent 16-item in-game pass confirmed items 1–10, 12, and 14–16.
 Item 11 found that shared party-label visibility worked but title font size did
@@ -90,9 +86,12 @@ checks.
 The next focused work item is in-game validation of the restored preview
 scaling path: Party A/B/C shared title sizing, module/global proportional
 scaling, preview-on/off cleanup, and the existing drag/persistence controls.
-After that, extend the same original explicit-size rendering approach toward
-future live gameplay modules without restoring `SetWindowFontScale`,
-window-only scale multiplication, or placeholder rendering outside preview.
+Those checks are now complete and passed in game. The next focused work item
+is the first live module slice: Player Frame first, then Target Frame after
+the Player Frame foundation and native-source matrix are in place. Continue to
+extend the same original explicit-size rendering approach toward future live
+gameplay modules without restoring `SetWindowFontScale`, window-only scale
+multiplication, or placeholder rendering outside preview.
 
 The authoritative design specification, decision record, project status,
 reference register, concept artifacts, and contributor instructions preserve
@@ -325,8 +324,8 @@ forward as implementation-time validation items.
 1. Define Q-011B's included pet families, exact fields, native sources,
    visibility rules, and any non-pet job indicators.
 2. Identify and verify the synthesis-history native source.
-3. Choose the first live module implementation after its native-source matrix
-   and acceptance tests are approved.
+3. Record the exact Ashita v4 build used for the validated core/configuration
+   pass when it is available.
 
 ## Recommended next work
 
@@ -337,10 +336,10 @@ forward as implementation-time validation items.
    target-of-target, casts, statuses, party/alliance, and notifications.
 4. Define component wireframes and interaction/state tables after the field
    matrices are approved.
-5. Use the party module as the first live module after its field matrix,
+5. Use the Player Frame as the first live module after its field matrix,
    invalidation table, and in-game Ashita adapter checks are approved. Keep
-   long-name capacity as a measured implementation result rather than a schema
-   constant.
+   follow-on Target Frame work as a separate slice after the Player Frame
+   foundation is stable.
 6. Specify design tokens, safe areas, scaling, and 1920×1080 reference layouts.
 7. Write acceptance criteria and an in-game verification plan.
 
