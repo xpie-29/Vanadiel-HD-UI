@@ -1,6 +1,7 @@
 local util = require('core.util');
 local config_window = require('ui.config_window');
 local layout_editor_module = require('core.layout_editor');
+local presentation_module = require('core.presentation');
 
 local platform = {};
 platform.__index = platform;
@@ -20,6 +21,9 @@ function render_context.new(imgui)
     return setmetatable({
         imgui = imgui,
         layout_editor = layout_editor_module.new(),
+        presentation = presentation_module.new(imgui),
+        global_opacity = 1.0,
+        global_scale = 1.0,
     }, render_context);
 end
 
@@ -35,6 +39,14 @@ local function vector_xy(value, second)
 end
 
 function render_context:begin_frame(application)
+    local settings = application:get_settings();
+    if settings ~= nil and settings.global ~= nil then
+        self.global_opacity = tonumber(settings.global.opacity) or 1.0;
+        self.global_scale = tonumber(settings.global.user_scale) or 1.0;
+    else
+        self.global_opacity = 1.0;
+        self.global_scale = 1.0;
+    end
     local raw_x, raw_y =
         self.imgui.GetMouseDragDelta(ImGuiMouseButton_Left, 0);
     local delta_x, delta_y = vector_xy(raw_x, raw_y);
@@ -51,6 +63,40 @@ function render_context:begin_frame(application)
             application:set_module_position(target.module_id, x, y);
         end
     end);
+end
+
+function render_context:_effective_opacity(module_config)
+    local module_opacity = tonumber(module_config.opacity) or 1.0;
+    local global_opacity = tonumber(self.global_opacity) or 1.0;
+    local effective = global_opacity * module_opacity;
+    if effective < 0.0 then
+        return 0.0;
+    end
+    if effective > 1.0 then
+        return 1.0;
+    end
+    return effective;
+end
+
+function render_context:_effective_scale(module_config)
+    local module_scale = tonumber(module_config.scale) or 1.0;
+    local global_scale = tonumber(self.global_scale) or 1.0;
+    local effective = global_scale * module_scale;
+    if effective < 0.25 then
+        return 0.25;
+    end
+    if effective > 4.0 then
+        return 4.0;
+    end
+    return effective;
+end
+
+function render_context:_window_origin()
+    if self.imgui.GetWindowPos == nil then
+        return 0, 0;
+    end
+    local x, y = vector_xy(self.imgui.GetWindowPos());
+    return x, y;
 end
 
 local function module_target(descriptor)
@@ -107,34 +153,126 @@ function render_context:_offer_drag(descriptor, module_config, element_id)
     self.layout_editor:offer_drag_surface(target, persisted, hovered);
 end
 
+function render_context:_generic_lines(descriptor, module_config, scale)
+    local presenter = self.presentation;
+    local primary = presenter:scaled_size(16, scale, 8);
+    local body = presenter:scaled_size(12, scale, 8);
+    local hint = presenter:scaled_size(11, scale, 8);
+    local spacing = presenter:scaled_size(4, scale, 0);
+    return {
+        {
+            text = descriptor.name,
+            size = primary,
+            color = 0xFFF3D9A6,
+            spacing_after = spacing,
+        },
+        {
+            text = 'PREVIEW ONLY - no live game data',
+            size = body,
+            color = 0xFF9FB0BD,
+            spacing_after = spacing,
+        },
+        {
+            text = 'LEFT-DRAG TO MOVE',
+            size = hint,
+            color = 0xFF7F8C97,
+            spacing_after = spacing,
+        },
+        {
+            text = ('Scale: %.2fx'):format(scale),
+            size = body,
+            color = 0xFFD9E0E5,
+            spacing_after = spacing,
+        },
+        {
+            text = 'Style: ' .. tostring(module_config.style),
+            size = body,
+            color = 0xFFD9E0E5,
+        },
+    };
+end
+
+function render_context:_party_lines(group, module_config, scale)
+    local presenter = self.presentation;
+    local title_size = presenter:scaled_size(module_config.options.font_size, scale, 8);
+    local body = presenter:scaled_size(12, scale, 8);
+    local hint = presenter:scaled_size(11, scale, 8);
+    local title_spacing = presenter:scaled_size(6, scale, 0);
+    local row_spacing = presenter:scaled_size(3, scale, 0);
+    local lines = {};
+
+    if module_config.options.show_group_labels then
+        lines[#lines + 1] = {
+            text = 'Party ' .. group.id,
+            size = title_size,
+            color = 0xFFF3D9A6,
+            spacing_after = title_spacing,
+        };
+    end
+
+    lines[#lines + 1] = {
+        text = 'PREVIEW ONLY',
+        size = body,
+        color = 0xFF9FB0BD,
+        spacing_after = row_spacing,
+    };
+    lines[#lines + 1] = {
+        text = module_config.layout.movement == 'independent'
+            and ('LEFT-DRAG TO MOVE PARTY ' .. group.id)
+            or 'LEFT-DRAG TO MOVE ALL PARTIES',
+        size = hint,
+        color = 0xFF7F8C97,
+        spacing_after = row_spacing,
+    };
+    lines[#lines + 1] = {
+        text = ('Title font: %.1f px'):format(title_size),
+        size = body,
+        color = 0xFFD9E0E5,
+        spacing_after = title_spacing,
+    };
+
+    for index = 1, #group.slots do
+        lines[#lines + 1] = {
+            text = group.slots[index].name,
+            size = body,
+            color = 0xFFE5EAEE,
+            spacing_after = index < #group.slots and row_spacing or 0,
+        };
+    end
+
+    return lines;
+end
+
 function render_context:_party(descriptor, preview_data, module_config)
     local imgui = self.imgui;
+    local presenter = self.presentation;
+    local scale = self:_effective_scale(module_config);
+    local padding_x = presenter:scaled_size(12, scale, 4);
+    local padding_y = presenter:scaled_size(12, scale, 4);
+    local minimum_width = presenter:scaled_size(180, scale, 60);
+    local minimum_height = presenter:scaled_size(210, scale, 80);
     for _, group in ipairs(preview_data.groups) do
         local offset_x, offset_y =
             self:_position(descriptor, module_config, group.id);
+        local lines = self:_party_lines(group, module_config, scale);
+        local text_width, text_height = presenter:measure_lines(lines);
+        local width = math.max(minimum_width, text_width + padding_x * 2);
+        local height = math.max(minimum_height, text_height + padding_y * 2);
         imgui.SetNextWindowPos(
             { 80 + offset_x, 120 + offset_y }, ImGuiCond_Always);
-        imgui.SetNextWindowSize({ 180, 210 }, ImGuiCond_Always);
-        imgui.SetNextWindowBgAlpha(module_config.opacity);
+        imgui.SetNextWindowSize({ width, height }, ImGuiCond_Always);
+        imgui.SetNextWindowBgAlpha(self:_effective_opacity(module_config));
         local title = '##vhd_party_preview_' .. group.id;
         if imgui.Begin(title, nil,
                 ImGuiWindowFlags_NoResize + ImGuiWindowFlags_NoCollapse
                 + ImGuiWindowFlags_NoMove + ImGuiWindowFlags_NoSavedSettings) then
             self:_offer_drag(descriptor, module_config, group.id);
-            if module_config.options.show_group_labels then
-                imgui.Text('Party ' .. group.id);
-                imgui.Separator();
-            end
-            imgui.TextDisabled('PREVIEW ONLY');
-            if module_config.layout.movement == 'independent' then
-                imgui.TextDisabled('LEFT-DRAG TO MOVE PARTY ' .. group.id);
-            else
-                imgui.TextDisabled('LEFT-DRAG TO MOVE ALL PARTIES');
-            end
-            imgui.TextDisabled(('Font size setting: %d')
-                :format(module_config.options.font_size));
-            for _, slot in ipairs(group.slots) do
-                imgui.Text(slot.name);
+            local draw_list = imgui.GetWindowDrawList();
+            local window_x, window_y = self:_window_origin();
+            presenter:draw_lines(draw_list,
+                window_x + padding_x, window_y + padding_y, lines);
+            if imgui.Dummy ~= nil then
+                imgui.Dummy({ width, height });
             end
         end
         imgui.End();
@@ -148,21 +286,37 @@ function render_context:placeholder(descriptor, preview_data, module_config)
     end
 
     local imgui = self.imgui;
+    local presenter = self.presentation;
+    local scale = self:_effective_scale(module_config);
     local offset_x, offset_y = self:_position(descriptor, module_config);
+    local lines = self:_generic_lines(descriptor, module_config, scale);
+    local padding_x = presenter:scaled_size(12, scale, 4);
+    local padding_y = presenter:scaled_size(12, scale, 4);
+    local text_width, text_height = presenter:measure_lines(lines);
+    local width = math.max(
+        presenter:scaled_size(220, scale, 80),
+        text_width + padding_x * 2);
+    local height = math.max(
+        presenter:scaled_size(96, scale, 40),
+        text_height + padding_y * 2);
     imgui.SetNextWindowPos({
         40 + descriptor.preview_offset.x + offset_x,
         80 + descriptor.preview_offset.y + offset_y,
     }, ImGuiCond_Always);
-    imgui.SetNextWindowBgAlpha(module_config.opacity);
+    imgui.SetNextWindowSize({ width, height }, ImGuiCond_Always);
+    imgui.SetNextWindowBgAlpha(self:_effective_opacity(module_config));
     if imgui.Begin('##vhd_preview_' .. descriptor.id, nil,
-            ImGuiWindowFlags_AlwaysAutoResize
+            ImGuiWindowFlags_NoResize
             + ImGuiWindowFlags_NoMove
             + ImGuiWindowFlags_NoSavedSettings) then
         self:_offer_drag(descriptor, module_config);
-        imgui.Text(descriptor.name);
-        imgui.TextDisabled('PREVIEW ONLY - no live game data');
-        imgui.TextDisabled('LEFT-DRAG TO MOVE');
-        imgui.Text('Style: ' .. tostring(module_config.style));
+        local draw_list = imgui.GetWindowDrawList();
+        local window_x, window_y = self:_window_origin();
+        presenter:draw_lines(draw_list,
+            window_x + padding_x, window_y + padding_y, lines);
+        if imgui.Dummy ~= nil then
+            imgui.Dummy({ width, height });
+        end
     end
     imgui.End();
 end

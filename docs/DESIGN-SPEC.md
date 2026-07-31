@@ -517,8 +517,10 @@ is documented in `CORE-ARCHITECTURE.md`.
   independent positions. No fixed name width or maximum character count exists
   in the schema.
 - The shared party `font_size` option changes the visible Party A/B/C group
-  title size; it must not remain a display-only configuration value in the
-  finished renderer. Its current scaffold consumer is pending.
+  title size in the current preview scaffold and must continue to do so in the
+  finished renderer.
+- The current preview scaffold composes global and module scale coherently for
+  geometry and text through an original explicit-size draw-list path.
 - A finished module renderer must apply global and module scale coherently to
   geometry, spacing, icons, and text. Effective background opacity is the
   global opacity multiplied by module opacity. Persisted presentation controls

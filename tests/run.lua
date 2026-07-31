@@ -50,6 +50,7 @@ test('all runtime Lua files compile', function ()
         'core/logger.lua',
         'core/module_registry.lua',
         'core/preview.lua',
+        'core/presentation.lua',
         'core/util.lua',
         'core/config/ashita_store.lua',
         'core/config/defaults.lua',
@@ -381,6 +382,250 @@ test('layout editor commits generic module or element targets once on release',
     equal(commits[1].x, 45, 'committed x');
     equal(commits[1].y, 5, 'committed y');
     equal(editor:is_dragging(target.key), false, 'drag released');
+end);
+
+test('preview rendering composes global and module opacity', function ()
+    local platform_module = require('core.platform.ashita');
+    local bg_alphas = {};
+    local globals = {
+        ImGuiMouseButton_Left = _G.ImGuiMouseButton_Left,
+        ImGuiHoveredFlags_None = _G.ImGuiHoveredFlags_None,
+        ImGuiMouseCursor_ResizeAll = _G.ImGuiMouseCursor_ResizeAll,
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+    };
+    _G.ImGuiMouseButton_Left = 0;
+    _G.ImGuiHoveredFlags_None = 0;
+    _G.ImGuiMouseCursor_ResizeAll = 0;
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = 1;
+    _G.ImGuiWindowFlags_NoMove = 2;
+    _G.ImGuiWindowFlags_NoSavedSettings = 4;
+    local draw_list = { AddText = function () end };
+    local fake_imgui = {
+        GetMouseDragDelta = function () return 0, 0; end,
+        IsMouseClicked = function () return false; end,
+        IsMouseReleased = function () return false; end,
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function () end,
+        SetNextWindowBgAlpha = function (value)
+            bg_alphas[#bg_alphas + 1] = value;
+        end,
+        Begin = function () return true; end,
+        End = function () end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function () return draw_list; end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+        IsWindowHovered = function () return false; end,
+        SetMouseCursor = function () end,
+    };
+    local app = {
+        is_preview_enabled = function () return true; end,
+        get_settings = function ()
+            return {
+                global = { opacity = 0.4 },
+            };
+        end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors, fakes.logger());
+    local renderer = platform:render_context();
+    platform:begin_layout_frame(app);
+    renderer:placeholder({
+        id = 'player',
+        name = 'Player Frame',
+        preview_offset = { x = 0, y = 0 },
+    }, {}, {
+        style = 'standard',
+        opacity = 0.5,
+        position = { x = 0, y = 0 },
+        layout = { movement = 'group', elements = {} },
+    });
+    equal(#bg_alphas, 1, 'one preview window alpha applied');
+    equal(bg_alphas[1], 0.2, 'global and module opacity composed');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
+end);
+
+test('preview rendering composes global and module scale into window size',
+        function ()
+    local platform_module = require('core.platform.ashita');
+    local sizes = {};
+    local text_calls = {};
+    local globals = {
+        ImGuiMouseButton_Left = _G.ImGuiMouseButton_Left,
+        ImGuiHoveredFlags_None = _G.ImGuiHoveredFlags_None,
+        ImGuiMouseCursor_ResizeAll = _G.ImGuiMouseCursor_ResizeAll,
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+    };
+    _G.ImGuiMouseButton_Left = 0;
+    _G.ImGuiHoveredFlags_None = 0;
+    _G.ImGuiMouseCursor_ResizeAll = 0;
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = 1;
+    _G.ImGuiWindowFlags_NoMove = 2;
+    _G.ImGuiWindowFlags_NoSavedSettings = 4;
+    local draw_list = {
+        AddText = function (_, a, b, c, d, e)
+            if e ~= nil then
+                text_calls[#text_calls + 1] = { size = b, text = e };
+            else
+                text_calls[#text_calls + 1] = { size = nil, text = d };
+            end
+        end,
+    };
+    local fake_imgui = {
+        GetMouseDragDelta = function () return 0, 0; end,
+        IsMouseClicked = function () return false; end,
+        IsMouseReleased = function () return false; end,
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function (value)
+            sizes[#sizes + 1] = value;
+        end,
+        SetNextWindowBgAlpha = function () end,
+        Begin = function () return true; end,
+        End = function () end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function () return draw_list; end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+        IsWindowHovered = function () return false; end,
+        SetMouseCursor = function () end,
+    };
+    local app = {
+        is_preview_enabled = function () return true; end,
+        get_settings = function ()
+            return {
+                global = { opacity = 1.0, user_scale = 1.5 },
+            };
+        end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors, fakes.logger());
+    local renderer = platform:render_context();
+    platform:begin_layout_frame(app);
+    renderer:placeholder({
+        id = 'player_frame',
+        name = 'Player Frame',
+        preview_offset = { x = 0, y = 0 },
+    }, {}, {
+        style = 'style_1',
+        scale = 0.5,
+        opacity = 1.0,
+        position = { x = 0, y = 0 },
+        layout = { movement = 'group', elements = {} },
+    });
+    equal(#sizes, 1, 'one preview size submitted');
+    equal(sizes[1][1], 165, 'scaled preview width');
+    equal(sizes[1][2], 77.25, 'scaled preview height');
+    truthy(#text_calls >= 4, 'draw-list text path used');
+    equal(text_calls[1].size, 12, 'title size scaled explicitly');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
+end);
+
+test('party preview font size applies across all preview groups', function ()
+    local platform_module = require('core.platform.ashita');
+    local title_sizes = {};
+    local globals = {
+        ImGuiMouseButton_Left = _G.ImGuiMouseButton_Left,
+        ImGuiHoveredFlags_None = _G.ImGuiHoveredFlags_None,
+        ImGuiMouseCursor_ResizeAll = _G.ImGuiMouseCursor_ResizeAll,
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+        ImGuiWindowFlags_NoCollapse = _G.ImGuiWindowFlags_NoCollapse,
+    };
+    _G.ImGuiMouseButton_Left = 0;
+    _G.ImGuiHoveredFlags_None = 0;
+    _G.ImGuiMouseCursor_ResizeAll = 0;
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = 1;
+    _G.ImGuiWindowFlags_NoMove = 2;
+    _G.ImGuiWindowFlags_NoSavedSettings = 4;
+    _G.ImGuiWindowFlags_NoCollapse = 8;
+    local draw_list = {
+        AddText = function (_, a, b, c, d, e)
+            if e ~= nil and tostring(e):match('^Party ') then
+                title_sizes[#title_sizes + 1] = b;
+            end
+        end,
+    };
+    local fake_imgui = {
+        GetMouseDragDelta = function () return 0, 0; end,
+        IsMouseClicked = function () return false; end,
+        IsMouseReleased = function () return false; end,
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function () end,
+        SetNextWindowBgAlpha = function () end,
+        Begin = function () return true; end,
+        End = function () end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function () return draw_list; end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+        IsWindowHovered = function () return false; end,
+        SetMouseCursor = function () end,
+    };
+    local app = {
+        is_preview_enabled = function () return true; end,
+        get_settings = function ()
+            return {
+                global = { opacity = 1.0, user_scale = 1.0 },
+            };
+        end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors, fakes.logger());
+    local renderer = platform:render_context();
+    platform:begin_layout_frame(app);
+    renderer:placeholder({
+        id = 'party',
+        name = 'Party and Alliance Frames',
+        preview_offset = { x = 0, y = 0 },
+    }, {
+        groups = {
+            { id = 'A', slots = { { name = 'One' }, { name = 'Two' }, { name = 'Three' }, { name = 'Four' }, { name = 'Five' }, { name = 'Six' } } },
+            { id = 'B', slots = { { name = 'One' }, { name = 'Two' }, { name = 'Three' }, { name = 'Four' }, { name = 'Five' }, { name = 'Six' } } },
+            { id = 'C', slots = { { name = 'One' }, { name = 'Two' }, { name = 'Three' }, { name = 'Four' }, { name = 'Five' }, { name = 'Six' } } },
+        },
+    }, {
+        style = 'proof_3',
+        scale = 1.25,
+        opacity = 1.0,
+        position = { x = 0, y = 0 },
+        options = { show_group_labels = true, font_size = 20 },
+        layout = {
+            movement = 'independent',
+            elements = {
+                A = { x = 0, y = 0 },
+                B = { x = 190, y = 0 },
+                C = { x = 380, y = 0 },
+            },
+        },
+    });
+    equal(#title_sizes, 3, 'all party groups drew titles');
+    equal(title_sizes[1], 25, 'party A title scaled');
+    equal(title_sizes[2], 25, 'party B title scaled');
+    equal(title_sizes[3], 25, 'party C title scaled');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
 end);
 
 local failures = 0;

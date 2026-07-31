@@ -235,6 +235,18 @@ Ending preview discards an unfinished drag. Preview windows use
 `NoSavedSettings`, so ImGui's private window-position persistence cannot
 compete with the addon's versioned configuration.
 
+Preview background alpha is now an active scaffold behavior rather than a
+display-only stored value: the render context composes effective opacity as
+global opacity multiplied by per-module opacity before submitting each preview
+window.
+
+The scaffold preview renderer now also composes effective scale as global
+scale multiplied by per-module scale. A narrow presentation helper measures
+text against the active ImGui line height, submits draw-list text at explicit
+pixel sizes where the binding supports it, and sizes preview windows from the
+same scaled geometry/text inputs. This activates preview-only scale and shared
+party-title font-size behavior without returning to `SetWindowFontScale`.
+
 Entering preview captures one session token and notifies initialized modules.
 Exiting preview clears all preview adapters and notifies modules once.
 Unload/error cleanup always calls exit. Preview data is visibly labeled and
@@ -244,13 +256,14 @@ Placeholder enablement controls lifecycle and status only. A placeholder draws
 when preview has supplied its labeled, non-live adapter; it does not create a
 separate window merely because the module is enabled.
 
-Scale and font-size values remain validated and persisted, but their production
-rendering consumer is intentionally pending. An experiment that scaled ImGui
-window dimensions and called `SetWindowFontScale` was reverted after it caused
-load warnings, premature placeholder display, incomplete preview cleanup, and
-text/window scaling mismatch in game. The replacement must use original font
-management initialized outside the render loop, explicit text measurement and
-draw sizes, and coherent scale composition across geometry and text.
+The current scaffold consumer for scale and font-size is preview-only. An
+earlier experiment that scaled ImGui window dimensions and called
+`SetWindowFontScale` was reverted after it caused load warnings, premature
+placeholder display, incomplete preview cleanup, and text/window scaling
+mismatch in game. The replacement path now uses original explicit-size
+measurement/drawing for preview scaffolds. Approved production font assets and
+future gameplay-module renderers still require their own controlled extension
+of that pattern.
 
 The party placeholder's preview adapter expresses the approved Proof 3
 contract: Party A/B/C, six preview slots each, shared Party A configuration,

@@ -62,28 +62,37 @@ preview was enabled. Disabling preview removed only some visible content and
 left module remnants. Module/global scale changed window dimensions without
 proportionately scaling text. The current build therefore returns to the
 verified pre-experiment preview lifecycle and preserves the schema-v2
-drag/editor work. Font size and coherent module/global scaling remain
-unimplemented pending an original explicit-size text-rendering architecture.
+drag/editor work.
+
+On 2026-07-31, `v0.1.1` began with a narrow scaffold fix for opacity. Preview
+rendering now applies effective background opacity as global opacity multiplied
+by per-module opacity instead of treating those values as persistence-only
+controls. Host smoke coverage increased to thirteen checks, including explicit
+verification of that composed preview alpha path.
+
+Later on 2026-07-31, the scaffold preview renderer gained an original
+explicit-size text-and-scale layer. Global and per-module scale now compose
+into preview geometry and text size, and the shared party `font_size` option
+now visibly applies across Party A/B/C preview titles. This restores the
+expected preview behavior without reintroducing `SetWindowFontScale` or
+window-only scaling. Production font assets and live gameplay renderers remain
+future work.
 
 ## Resume point — core checkpoint (2026-07-30)
 
 Resume from this committed checkpoint, not from the reverted scaling
-experiment. The stable baseline has schema-version-2 configuration, generic
-preview-only drag/edit positioning, Party A/B/C independent/group movement,
-scoped configuration theming, and twelve passing LuaJIT smoke checks.
+experiment. The stable baseline now has schema-version-2 configuration,
+generic preview-only drag/edit positioning, Party A/B/C independent/group
+movement, scoped configuration theming, composed preview opacity, and an
+original preview text-and-scale layer with fifteen passing LuaJIT smoke
+checks.
 
-The next focused work item is an original preview text-and-scale rendering
-layer. First verify the installed Ashita ImGui font and draw-list API, then
-design a narrow abstraction that initializes approved fonts outside the
-per-frame render path, measures and draws text at explicit pixel sizes, and
-scales geometry and text together. Do not restore `SetWindowFontScale`,
-window-only scale multiplication, or enabled-placeholder rendering outside
-preview. Keep XIUI strictly as a behavior reference and preserve D-001 through
-D-025, especially the native-information boundary.
-
-After that layer exists, rerun the LuaJIT suite and perform a focused in-game
-test of Party A/B/C shared title sizing, module/global proportional scaling,
-preview-on/off cleanup, and the existing drag/persistence controls.
+The next focused work item is in-game validation of the restored preview
+scaling path: Party A/B/C shared title sizing, module/global proportional
+scaling, preview-on/off cleanup, and the existing drag/persistence controls.
+After that, extend the same original explicit-size rendering approach toward
+future live gameplay modules without restoring `SetWindowFontScale`,
+window-only scale multiplication, or placeholder rendering outside preview.
 
 The authoritative design specification, decision record, project status,
 reference register, concept artifacts, and contributor instructions preserve
@@ -255,12 +264,19 @@ forward as implementation-time validation items.
   movement and atomic release-time persistence.
 - [x] Party preview adapter for Party A/B/C at six slots each, with Party A
   settings ownership, label toggle, font-size control, and no fixed name limit.
+- [x] Effective preview background opacity composed from global and per-module
+  settings.
+- [x] Original preview text-and-scale layer using explicit-size draw-list text.
+- [x] Composed preview module/global scaling applied to scaffold geometry and
+  text.
+- [x] Shared party title font sizing applied across Party A/B/C previews.
 - [x] Host-independent Lua smoke harness.
-- [x] Twelve smoke checks passing under LuaJIT 2.1.1779665312: runtime
+- [x] Fifteen smoke checks passing under LuaJIT 2.1.1779665312: runtime
   compilation, defaults/round trip, migration, invalid/future recovery, resets,
   fault isolation, reverse cleanup, party preview lifecycle, and deterministic
   event cleanup, configuration-theme stack restoration, independent layout
-  persistence, and generic module/element drag commits.
+  persistence, generic module/element drag commits, composed preview opacity,
+  composed preview scale, and shared Party A/B/C title sizing.
 
 ## Not started
 
@@ -270,12 +286,12 @@ forward as implementation-time validation items.
 - Post-export status-icon filename-to-design verification.
 - Finished gameplay-module state management and production rendering.
 - Production positioning behavior beyond the verified scaffold drag controls.
-- Original font loading, measurement, and draw-list text abstraction that is
-  initialized outside the render loop and supports explicit pixel sizes.
-- Coherent module/global scaling that applies to geometry, spacing, icons, and
-  text without relying on ImGui window-font scaling.
+- Approved production font loading/caching beyond the current scaffold preview
+  text layer.
+- Extension of coherent scale composition from scaffold previews into future
+  gameplay renderers, icons, and final component geometry.
 - Focused in-game retest of shared party title sizing and module/global scale
-  behavior after that replacement architecture is implemented.
+  behavior on the current preview renderer.
 - Named profiles, resolution presets, and import/export.
 - Native DAT/texture package.
 - External-addon themes.
