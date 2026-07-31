@@ -491,6 +491,89 @@ layouts must remain anchor-compatible but are not supported until validated.
 
 Configuration must not turn informational modules into automation.
 
+### 7.1 Implemented core configuration architecture
+
+D-022 established schema version 1. D-024 advances the current schema to
+version 2 for generic multi-element positioning; the implementation boundary
+is documented in `CORE-ARCHITECTURE.md`.
+
+- The core addon lives at `addon/VanadielHDUI` and uses one entry point.
+- Only the core event router owns Ashita lifecycle, command, and render-event
+  registrations.
+- Module descriptors are explicit and ordered. Placeholder modules request no
+  live game-state capability.
+- Persisted module blocks own enabled state, an approved style identifier,
+  anchor/base position, scale, opacity, descriptor-reviewed options, and a
+  layout block containing movement mode and declared element offsets.
+- The configuration service migrates before validation, recovers invalid
+  fields independently, rejects unsupported future schemas, and provides
+  module/global reset.
+- Configuration-window and preview-open state are session-only and clear on
+  unload.
+- Preview mode may initialize a disabled placeholder temporarily without
+  changing its persisted enabled state.
+- The party preview always supplies three preview-only Party A/B/C groups with
+  six slots each. Party A owns shared presentation options, while A/B/C own
+  independent positions. No fixed name width or maximum character count exists
+  in the schema.
+- The shared party `font_size` option changes the visible Party A/B/C group
+  title size; it must not remain a display-only configuration value in the
+  finished renderer. Its current scaffold consumer is pending.
+- A finished module renderer must apply global and module scale coherently to
+  geometry, spacing, icons, and text. Effective background opacity is the
+  global opacity multiplied by module opacity. Persisted presentation controls
+  must not remain display-only values.
+- Production module text must not rely on `SetWindowFontScale`. The replacement
+  architecture must preload and cache approved fonts outside the per-frame
+  render path, measure and draw text at explicit pixel sizes, and contain font
+  setup failures at the platform boundary.
+- XIUI demonstrates the relevant behavior pattern, but its implementation is
+  reference-only. Vana'diel HD UI must use original font management,
+  measurement, drawing, outlining, and scale composition.
+- Placeholder enablement remains a lifecycle/status state. It does not by
+  itself render a non-preview scaffold window. Preview mode is the only current
+  placeholder visualization and continues to show all module previews for
+  layout editing regardless of persisted enabled state.
+- A module failure is isolated to that module's runtime state and does not
+  silently alter the user's enabled choice.
+
+The initial values in version 2 are development-safe scaffold defaults, not
+final product-default approval. All gameplay placeholders start disabled.
+Finished state adapters and renderers remain subject to the verification gates
+in section 9.
+
+### 7.2 Configuration-shell presentation and section ownership
+
+The configuration shell uses a locally scoped navy/brass/ivory ImGui theme
+consistent with D-015. It must restore its pushed ImGui colors and style
+variables after rendering so it does not restyle unrelated addon windows. The
+current token values and geometry are a reversible first implementation and
+remain subject to in-game readability and visual validation.
+
+Placeholder descriptor groupings are not final configuration taxonomy. As
+modules are defined, grouped placeholders may become unique independently
+configurable sections when field ownership and behavior are verified. Any
+change to persisted module IDs or blocks requires a schema migration that
+retains compatible user choices; no speculative gameplay fields should be
+added in advance.
+
+### 7.3 Core preview drag/edit positioning
+
+Preview mode is the foundation edit-positioning mode. A visible module surface
+may be left-click dragged, with the core layout editor owning mouse state,
+transient movement, pixel snapping, and persistence. The configuration service
+must receive one atomic X/Y update on release rather than saving every render
+frame.
+
+Modules provide stable descriptor-declared element IDs, drag surfaces, and
+render at positions supplied by the core context. They must not implement
+separate input or persistence systems. Multi-element modules expose independent
+and grouped movement. Independent mode changes only the selected element;
+grouped mode changes the common module base. Switching modes retains every
+element offset. Party A/B/C default to independent movement. Leaving preview
+cancels an unfinished drag. This interaction changes addon layout only and may
+not execute or automate gameplay actions.
+
 ## 8. Confirmed exclusions
 
 - Enemy list.

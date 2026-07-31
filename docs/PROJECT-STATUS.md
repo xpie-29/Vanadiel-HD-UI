@@ -1,17 +1,89 @@
 # Vana'diel HD UI — Project Status
 
-**Phase:** Visual conception complete; core architecture handoff prepared
+**Phase:** Core architecture and configuration foundation validated in game
 **Last updated:** 2026-07-30
 
-**Implementation status:** Not started
+**Implementation status:** Foundation validated; live gameplay modules not started
 
 ## Current outcome
 
-The visual conception phase is complete. The authoritative design
-specification, decision record, project status, reference register, concept
-artifacts, and contributor instructions now preserve the approved directions
-and remaining production-validation items. No addon code, configuration,
-runtime prototypes, or installation artifacts exist yet.
+The visual conception phase is complete. The first implementation phase is
+also complete: the repository now contains an original Ashita v4 addon
+foundation under `addon/VanadielHDUI`, the architecture record in
+`docs/CORE-ARCHITECTURE.md`, and host-independent tests under `tests/`.
+
+The foundation provides the verified Ashita lifecycle/event entry point,
+central routing, an explicit module registry, independently toggleable
+placeholder descriptors, fault isolation, a versioned configuration service,
+Ashita settings persistence, validation/migration/recovery, an ImGui
+configuration shell, reversible preview state, and global/per-module resets.
+All gameplay descriptors request zero live-game capabilities and start
+disabled. No finished gameplay collection or module rendering has been
+implemented.
+
+Xpie's 2026-07-30 in-game pass confirmed addon load/unload behavior, lifecycle
+chat notices, responsive configuration controls, persistence across
+configuration close/reopen and addon unload/reload, and the expected
+`disabled`-to-`running` state change when enabling a placeholder. The exact
+Ashita v4 build used for that pass has not been recorded. The configuration
+shell now also has a scoped first-pass navy/brass/ivory theme; its exact values
+remain subject to in-game visual review.
+
+A follow-up checklist pass also confirmed preview-only labeling and absence of
+live data, preview shutdown behavior, full-reset behavior, position/scale/
+opacity/enabled persistence, and clean unload. Party A/B/C visual inspection
+and shared label/font verification remain pending because the forced
+placeholder positions overlap. Party-only reset isolation also remains
+pending. These are incomplete checks, not observed failures.
+
+The core preview layout editor is now implemented to unblock those visual
+checks. While preview is active, each placeholder can be left-dragged.
+Descriptor-declared multi-element modules can move independently or as a
+group; Party A/B/C default to independent positioning. Group mode shifts a
+shared base without discarding element offsets. Movement saves once on release
+through the existing configuration service and cancels if preview ends before
+release. This behavior has host-test coverage and awaits in-game
+reverification.
+
+The subsequent 16-item in-game pass confirmed items 1–10, 12, and 14–16.
+Item 11 found that shared party-label visibility worked but title font size did
+not change. Item 13 confirmed opacity, position, and persistence for passing
+settings but found no visible enabled-placeholder lifecycle. Xpie subsequently
+clarified that both module and global scaling also failed.
+
+The attempted correction was reverted at Xpie's direction after a subsequent
+in-game run regressed the otherwise stable foundation. Loading emitted a
+font-scaling-disabled warning and showed the Player Frame preview before
+preview was enabled. Disabling preview removed only some visible content and
+left module remnants. Module/global scale changed window dimensions without
+proportionately scaling text. The current build therefore returns to the
+verified pre-experiment preview lifecycle and preserves the schema-v2
+drag/editor work. Font size and coherent module/global scaling remain
+unimplemented pending an original explicit-size text-rendering architecture.
+
+## Resume point — core checkpoint (2026-07-30)
+
+Resume from this committed checkpoint, not from the reverted scaling
+experiment. The stable baseline has schema-version-2 configuration, generic
+preview-only drag/edit positioning, Party A/B/C independent/group movement,
+scoped configuration theming, and twelve passing LuaJIT smoke checks.
+
+The next focused work item is an original preview text-and-scale rendering
+layer. First verify the installed Ashita ImGui font and draw-list API, then
+design a narrow abstraction that initializes approved fonts outside the
+per-frame render path, measures and draws text at explicit pixel sizes, and
+scales geometry and text together. Do not restore `SetWindowFontScale`,
+window-only scale multiplication, or enabled-placeholder rendering outside
+preview. Keep XIUI strictly as a behavior reference and preserve D-001 through
+D-025, especially the native-information boundary.
+
+After that layer exists, rerun the LuaJIT suite and perform a focused in-game
+test of Party A/B/C shared title sizing, module/global proportional scaling,
+preview-on/off cleanup, and the existing drag/persistence controls.
+
+The authoritative design specification, decision record, project status,
+reference register, concept artifacts, and contributor instructions preserve
+the approved directions and remaining production-validation items.
 
 At the start of the transfer, Git history contained only the initial README and
 its expanded baseline. The raw earlier ChatGPT conversation was not present in
@@ -155,18 +227,56 @@ forward as implementation-time validation items.
   configuration preview, and gameplay visibility rules recorded.
 - [x] Core addon structure/configuration-system starter prompt prepared for the
   implementation conversation.
+- [x] D-022 core architecture and configuration decision.
+- [x] Durable core architecture record.
+- [x] Ashita v4 addon metadata, load/unload/command/`d3d_present` lifecycle,
+  and deterministic event cleanup.
+- [x] Explicit ordered module descriptors and narrow optional lifecycle
+  contract.
+- [x] Independent placeholder enable/disable with reverse shutdown and
+  per-module runtime fault isolation.
+- [x] Restricted module contexts with no live game-state capabilities in the
+  foundation phase.
+- [x] Schema-version-2 defaults and validation, version-0/1 migrations,
+  descriptor-driven element layout, persistence, per-field recovery,
+  future-version fail-closed recovery, and module/global resets.
+- [x] Invalid settings-file preservation adapter around Ashita's bundled
+  per-character settings library.
+- [x] In-game ImGui configuration shell and session-only preview mode.
+- [x] In-game foundation pass for load/unload, lifecycle notices, responsive
+  controls, persistence, and placeholder enable-state transition.
+- [x] Scoped navy/brass/ivory configuration-shell theme with balanced ImGui
+  style restoration.
+- [x] D-024 core preview drag/edit positioning with generic independent/group
+  movement and atomic release-time persistence.
+- [x] Party preview adapter for Party A/B/C at six slots each, with Party A
+  settings ownership, label toggle, font-size control, and no fixed name limit.
+- [x] Host-independent Lua smoke harness.
+- [x] Twelve smoke checks passing under LuaJIT 2.1.1779665312: runtime
+  compilation, defaults/round trip, migration, invalid/future recovery, resets,
+  fault isolation, reverse cleanup, party preview lifecycle, and deterministic
+  event cleanup, configuration-theme stack restoration, independent layout
+  persistence, and generic module/element drag commits.
 
 ## Not started
 
-- Addon architecture or code.
-- Ashita API/data-source prototypes.
-- Approved visual tokens, exact component dimensions, or production mockups.
+- Live Ashita game-state/data-source adapters.
+- Final visual tokens, exact component dimensions, or production mockups.
 - Status-icon border normalization and individual-file generation.
 - Post-export status-icon filename-to-design verification.
-- Rendering, state management, configuration, profiles, or edit mode.
+- Finished gameplay-module state management and production rendering.
+- Production positioning behavior beyond the verified scaffold drag controls.
+- Original font loading, measurement, and draw-list text abstraction that is
+  initialized outside the render loop and supports explicit pixel sizes.
+- Coherent module/global scaling that applies to geometry, spacing, icons, and
+  text without relying on ImGui window-font scaling.
+- Focused in-game retest of shared party title sizing and module/global scale
+  behavior after that replacement architecture is implemented.
+- Named profiles, resolution presets, and import/export.
 - Native DAT/texture package.
 - External-addon themes.
-- Automated or in-game tests.
+- Remaining party preview/shared-presentation and party-only-reset checks, plus
+  the Ashita-version compatibility matrix.
 - Installation, update, migration, and rollback validation.
 - Release packaging and third-party notices.
 
@@ -195,10 +305,10 @@ forward as implementation-time validation items.
 1. Define Q-011B's included pet families, exact fields, native sources,
    visibility rules, and any non-pet job indicators.
 2. Identify and verify the synthesis-history native source.
-3. Decide which approved technical questions should be prototyped first once
-   implementation work is explicitly authorized.
+3. Choose the first live module implementation after its native-source matrix
+   and acceptance tests are approved.
 
-## Recommended next design work (no implementation)
+## Recommended next work
 
 1. Complete Q-011B's field-by-field definition.
 2. Convert any supplied conversation excerpts or screenshots into dated decision
@@ -207,8 +317,12 @@ forward as implementation-time validation items.
    target-of-target, casts, statuses, party/alliance, and notifications.
 4. Define component wireframes and interaction/state tables after the field
    matrices are approved.
-5. Specify design tokens, safe areas, scaling, and 1920×1080 reference layouts.
-6. Write acceptance criteria and an in-game verification plan.
+5. Use the party module as the first live module after its field matrix,
+   invalidation table, and in-game Ashita adapter checks are approved. Keep
+   long-name capacity as a measured implementation result rather than a schema
+   constant.
+6. Specify design tokens, safe areas, scaling, and 1920×1080 reference layouts.
+7. Write acceptance criteria and an in-game verification plan.
 
 ## Definition of ready for implementation
 

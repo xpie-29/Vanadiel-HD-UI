@@ -26,6 +26,14 @@ These values are working tokens for concept evaluation. They are not approved
 production values. Future approved assets and in-game readability tests may
 supersede them.
 
+### Configuration-shell implementation
+
+D-023 authorizes these candidate navy, brass, and text tokens as a reversible
+first-pass theme for the in-game configuration shell. That narrow use does not
+make the numeric values final production tokens. The shell must be reviewed in
+game for contrast, control-state clarity, density, and consistency before the
+values or geometry are treated as settled.
+
 | Group | Token | Hex | Candidate use |
 |---|---|---:|---|
 | Structure | Midnight Void | `#070B13` | External shadows and deepest outlines |

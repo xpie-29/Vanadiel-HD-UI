@@ -382,9 +382,10 @@ Statuses:
 - **Rejected proofs:** The richer single-stack Proof 1 and compact 2×3 raid
   Proof 2 are rejected and retained only as concept history.
 - **Shared configuration:** Party A is the canonical configuration template.
-  Its party-frame options automatically apply to Parties B and C so all three
-  group entities remain identical. Party-group labels have a user
-  enable/disable toggle.
+  Its presentation options automatically apply to Parties B and C so all
+  three group entities remain identical. Position is not a shared
+  presentation option: A, B, and C must remain independently positionable.
+  Party-group labels have a user enable/disable toggle.
 - **Selection:** The demonstrated narrow Bright Brass edge and restrained arrow
   are approved for the currently selected player.
 - **Typography and capacity:** User font options must include font-size control.
@@ -412,6 +413,122 @@ Statuses:
   values, status glyphs, production pixels, and minor module refinements remain
   implementation-time validation items. Direct user-initiated party targeting
   remains governed by Q-005.
+
+### D-022 — Core addon architecture and configuration foundation
+
+- **Status:** Approved
+- **Date:** 2026-07-30
+- **Source:** Xpie's explicit core-implementation authorization
+- **Scope:** Implement one Ashita v4 addon foundation with an explicit ordered
+  module registry, narrow lifecycle contract, centralized event and command
+  routing, restricted game-state/render adapter seams, versioned validated
+  configuration, per-module settings, an ImGui configuration shell,
+  reversible preview mode, reset/recovery controls, logging, fault isolation,
+  and host-independent smoke tests.
+- **Module boundary:** Foundation modules receive only descriptor-approved
+  capabilities. The initial placeholder descriptors request no live game-state
+  capabilities and may not register their own Ashita packet, text, input, or
+  rendering events.
+- **Configuration:** Schema version 1 owns global settings and independent
+  module blocks for enabled state, approved style, position, scale, opacity,
+  and reviewed module-specific options. Preview/window-open state is
+  session-only. Invalid fields recover independently; an unsupported future
+  schema fails closed to defaults. Global and per-module resets save
+  immediately. D-024 supersedes only the schema number and layout shape with
+  version 2; these ownership and recovery rules remain binding.
+- **Party expression:** The placeholder party descriptor has one Party A-owned
+  presentation-settings block shared by Parties B/C, a group-label toggle,
+  font-size control, and preview-only three-group/six-slot data. D-024 adds
+  separate element positions without duplicating presentation settings. It
+  does not fix a name width or character limit and does not implement gameplay
+  roster behavior.
+- **Failure policy:** A module hook failure faults only that runtime module,
+  preserves the user's persisted enabled choice, and does not stop unrelated
+  modules. Shutdown remains best-effort and reverse ordered.
+- **Limit:** This decision authorizes architecture, configuration, preview/test
+  adapters, and visibly labeled placeholders only. It does not authorize
+  finished module rendering, live game-state collection, packet behavior,
+  native-UI suppression, status cancellation, targeting, or any other
+  specialized gameplay behavior.
+
+### D-023 — Scoped configuration-shell theme and provisional module sections
+
+- **Status:** Approved
+- **Date:** 2026-07-30
+- **Source:** Xpie's in-game foundation-test report and configuration-theme
+  direction
+- **Theme:** The ImGui configuration shell uses the approved D-015
+  navy/brass/ivory visual direction. The implementation applies the working
+  tokens from `VISUAL-SYSTEM.md` as a scoped theme and restores every pushed
+  ImGui color/style value after the window renders, including an error path.
+- **Validation limit:** The current RGBA values, rounding, padding, spacing,
+  and control treatments are a reversible first implementation. They do not
+  promote the candidate palette to final production values; in-game
+  readability and visual review may revise them.
+- **Section ownership:** The current placeholder descriptors are scaffold
+  organization, not a permanent statement that grouped systems share one
+  configuration section. A grouped placeholder may be split into unique,
+  independently configurable sections when its module is defined and Xpie
+  provides the needed field-level verification.
+- **Migration requirement:** A later split must preserve compatible user
+  settings through an explicit schema migration. This decision does not
+  authorize speculative module fields, gameplay data, or a schema change now.
+
+### D-024 — Core preview drag/edit positioning
+
+- **Status:** Approved
+- **Date:** 2026-07-30
+- **Source:** Xpie's explicit request after overlapping placeholders blocked
+  completion of the in-game foundation checklist
+- **Scope:** While preview mode is active, left-click dragging any registered
+  placeholder surface moves that module through a centralized core layout
+  editor. Normal gameplay mode does not accept these layout drags.
+- **Ownership:** Modules identify their visible drag surfaces and consume the
+  position supplied by the render context. Mouse-state handling, transient
+  drag offsets, pixel snapping, configuration mutation, and persistence remain
+  core responsibilities rather than being independently reimplemented by
+  modules.
+- **Descriptor-driven elements:** A multi-element module declares stable
+  element IDs and default offsets in its descriptor. The core layout editor
+  operates only on generic module or element targets; it must not contain
+  hard-coded Party A/B/C movement logic.
+- **Movement option:** Multi-element modules expose `Move elements
+  independently` and `Move elements as a group`. Independent mode updates
+  only the dragged element. Group mode updates the module base so every
+  element moves by the same delta. Party A/B/C default to independent mode.
+  Switching modes preserves all element offsets.
+- **Persistence:** Movement remains transient while the button is held and is
+  committed atomically once on release. Ending preview cancels an unfinished
+  drag. Schema version 2 adds the movement mode and descriptor-declared
+  element offsets while migrating and preserving version-1 module positions.
+- **Limit:** This is direct user-initiated configuration interaction over
+  preview surfaces only. It does not authorize gameplay targeting, automated
+  actions, live-data collection, or module-specific gameplay behavior.
+
+### D-025 — Revert window-font scaling experiment
+
+- **Status:** Approved
+- **Date:** 2026-07-30
+- **Source:** Xpie's in-game regression report and explicit rollback request;
+  current XIUI upstream reviewed as a behavior reference
+- **Decision:** Revert the post-D-024 experiment that used
+  `SetWindowFontScale`, scaled placeholder window dimensions, and rendered an
+  enabled placeholder outside preview. Preserve schema version 2,
+  descriptor-driven drag/edit positioning, independent/group movement, and
+  the previously verified preview lifecycle.
+- **Observed regression:** Addon load emitted a font-scaling-disabled warning
+  and displayed the Player Frame preview before preview was enabled. Preview
+  shutdown left visible module remnants. Module/global scale changed window
+  dimensions without scaling fonts proportionately.
+- **Replacement requirement:** Production rendering must use an original font
+  abstraction that loads and caches approved fonts outside the frame-render
+  path, measures and draws text at explicit sizes, and applies global/module
+  scale coherently to geometry and text. Do not use ImGui window-font scaling
+  as the production scaling mechanism.
+- **Reference limit:** XIUI demonstrates font prewarming, explicit-size
+  draw-list text, and separately scaled module geometry. It is behavior
+  reference only. This decision does not authorize copying or adapting XIUI
+  source, algorithms, assets, names, or bundled dependencies.
 
 ## Gameplay-audit decisions and remaining questions
 

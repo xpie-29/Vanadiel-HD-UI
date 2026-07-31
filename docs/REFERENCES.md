@@ -44,6 +44,9 @@ documentation can change and must be rechecked before release.
 | [Ashita v4 commands](https://docs.ashitaxi.com/usage/commands/) | Verified addon load/unload command syntax | Use when installation documentation is tested. |
 | [Ashita v4 configurations](https://docs.ashitaxi.com/usage/configurations/) | Configuration location and settings behavior | Use when profile/persistence design begins. |
 | [AshitaXI example addon](https://github.com/AshitaXI/example) | Minimal official/community-maintained v4 addon structure reference | Behavior/API study only unless exact license and intended reuse are reviewed. |
+| [Ashita v4 bundled `settings` library](https://github.com/AshitaXI/Ashita-v4beta/blob/main/addons/libs/settings.lua) | Current public load/save/reload/reset, callback, alias, and per-character-path behavior | API/behavior study only. The project wraps the installed library and does not copy its source. Checked 2026-07-30. |
+| [Ashita v4 bundled `imgui` library](https://github.com/AshitaXI/Ashita-v4beta/blob/main/addons/libs/imgui.lua) | Current public ImGui color/style constants and scoped push/pop API | API/behavior study only. The project calls the installed binding and does not copy its source. Checked 2026-07-30. |
+| [Ashita v4 bundled BluCheck addon](https://github.com/AshitaXI/Ashita-v4beta/tree/main/addons/blucheck) | Current public ImGui and `d3d_present` usage example | API/behavior study only. No source or UI structure copied. Checked 2026-07-30. |
 
 Ashita's ability to expose chat, packets, memory, commands, or rendering does not
 override the native-information boundary. Capability and product approval are
@@ -151,6 +154,7 @@ boundary revision and Q-011B pet-frame review.
 | Archive SHA-256 | `C0BD250AA5DDD7134D3C30512987BAE90C3990852D3BCAD4A8B54C243F5008A5` |
 | Main-file notice | MIT License header; copyright 2023 tirem |
 | Current upstream review | Checked 2026-07-30; public default branch `main`. The README documents a single Ashita v4 addon with in-game `/xiui` configuration and selectable features. The repository-level license is GNU GPL version 3. |
+| Font/scaling behavior reviewed | At upstream commit `7d960b3bf47ea6979b3a580d97ce04e36829c0c9`, `XIUI/libs/imtext.lua` loads and caches font handles outside the per-frame render path, measures text at requested pixel sizes, and uses draw-list text calls with explicit font sizes. `XIUI/modules/partylist/display.lua` scales layout geometry separately and supplies configured font sizes to that text layer. |
 | Target-effect behavior reviewed | Reconstructs enemy effects from observed action/result messages, fixed or default duration estimates, wear-off/death messages, and zone clearing; target bar shows remaining estimates |
 | Pet behavior reviewed | Separate Avatar, Charm, Jug, Automaton, and Wyvern configurations; demonstrates name/level, HP/MP/TP, distance, status, pet-target, and command-recast possibilities |
 | Project use | Behavior reference only; no code, duration tables, submodules, or assets incorporated |
@@ -167,6 +171,20 @@ asset-by-asset provenance remain unverified. XIUI is therefore an
 architecture/behavior reference only. Incorporation remains prohibited without
 a separate file-specific intake decision, compatibility review, and
 release-notice plan.
+
+For D-022, the current public repository was checked only to confirm the
+user-facing pattern described by its README: one Ashita v4 addon, an in-game
+`/xiui` configuration surface, and selectable features. Vana'diel HD UI's
+directory structure, lifecycle coordinator, module contract, event routing,
+configuration schema, migrations, validation, preview adapters, and tests were
+written independently and do not reproduce XIUI naming or implementation.
+
+For D-025, the current upstream font and Party-list paths were reviewed only to
+identify a working behavior pattern: initialize fonts outside the render
+frame, use explicit text sizes for measurement/drawing, and scale geometry
+separately. No source, outline routine, constants, font choices, or other
+implementation detail was incorporated. Vana'diel HD UI's replacement remains
+to be designed and written independently.
 
 ### EquipMon and other external addons
 

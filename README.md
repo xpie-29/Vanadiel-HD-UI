@@ -1,6 +1,6 @@
 # Vana'diel HD UI
 
-> **Project status:** Design and gameplay audit  
+> **Project status:** Core foundation validated in game; gameplay modules remain placeholders
 > This README is a living draft. Features, installation steps, file locations, and configuration commands marked **TBD** will be completed and verified as development progresses.
 
 > **Document authority:** This README preserves the transferred baseline and
@@ -12,6 +12,34 @@
 Vana'diel HD UI is a modernization project for the Final Fantasy XI interface, designed for Ashita v4. Its purpose is to make information the game already communicates clearer, more cohesive, and more readable at modern resolutions while preserving the character, friction, and deliberate limitations that are part of FFXI's identity.
 
 The eventual goal is one cohesive addon with internally independent modules, supported by a separate set of native interface textures and optional themes for compatible external addons. It should look and feel like one interface without becoming one fragile piece of code.
+
+## Development foundation
+
+The first authorized implementation phase is present under
+`addon/VanadielHDUI`. It provides the Ashita v4 lifecycle entry point, explicit
+module registry, versioned configuration and recovery, an in-game ImGui
+configuration shell, reversible preview mode, and placeholder descriptors for
+approved modules. It does **not** implement finished live gameplay behavior.
+The first in-game foundation pass confirmed load/unload, lifecycle notices,
+responsive controls, persistence, and placeholder enable-state transitions.
+The configuration shell uses a scoped first-pass navy/brass/ivory theme whose
+exact values remain subject to visual review.
+Preview mode also provides core left-drag positioning for placeholder modules.
+Multi-element modules can expose independent or grouped movement; Party A/B/C
+default to independent positions. Final positions and movement mode persist on
+release.
+
+The architecture is documented in
+[`docs/CORE-ARCHITECTURE.md`](docs/CORE-ARCHITECTURE.md). Host-independent smoke
+tests live in `tests/` and can be run with:
+
+```powershell
+.\tests\smoke.ps1 -Lua <path-to-luajit-or-lua>
+```
+
+The scaffold recognizes `/vhd` and `/vanadielhdui`. `/vhd help` lists the
+configuration, preview, module-toggle, reset, and status commands. These
+commands alter addon state only; they do not execute gameplay actions.
 
 ## Design philosophy
 
@@ -335,7 +363,7 @@ the two decorative log displays preserve reliable native filtering and input.
 
 ```text
 VanadielHDUI/
-├── addon/                  # Core Ashita addon — TBD
+├── addon/VanadielHDUI/    # Core Ashita addon foundation
 ├── assets/                 # Original overlay textures and fonts — TBD
 ├── native-ui/              # Optional native DAT/texture package — TBD
 ├── external-themes/        # Optional themes for compatible addons — TBD
@@ -354,13 +382,13 @@ VanadielHDUI/
 3. Copy the core addon folder to:
 
    ```text
-   <Ashita v4>\addons\<TBD>
+   <Ashita v4>\addons\VanadielHDUI
    ```
 
 4. Load the addon using:
 
    ```text
-   /addon load <TBD>
+   /addon load VanadielHDUI
    ```
 
 5. To load it automatically, add the verified command to the appropriate Ashita startup script: **TBD**.
@@ -388,7 +416,7 @@ For each theme:
 
 ### First launch
 
-1. Open configuration mode using **TBD**.
+1. Open configuration mode using `/vhd`.
 2. Select a resolution/layout preset.
 3. Confirm that all active modules fit within the safe screen area.
 4. Choose whether the party frame or right chat panel covers the native lower-right UI.
@@ -438,7 +466,8 @@ For each theme:
 ### Uninstalling and rollback
 
 1. Close FINAL FANTASY XI and Ashita.
-2. Remove or disable the core addon: **TBD**.
+2. Unload the core addon with `/addon unload VanadielHDUI`, then remove its
+   folder if desired.
 3. Remove the Vana'diel HD UI XIPivot package or restore the prior native UI files.
 4. Restore external-addon assets and settings from backup.
 5. Remove the automatic load command.
