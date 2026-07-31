@@ -1,6 +1,6 @@
 # Vana'diel HD UI
 
-> **Project status:** Core foundation validated in game; gameplay modules remain placeholders
+> **Project status:** Core foundation validated in game; first Player Frame live slice in validation
 > **Current working version:** `0.1.1` (`v0.1.0` archived as the stable checkpoint tag)
 > This README is a living draft. Features, installation steps, file locations, and configuration commands marked **TBD** will be completed and verified as development progresses.
 
@@ -19,8 +19,8 @@ The eventual goal is one cohesive addon with internally independent modules, sup
 The first authorized implementation phase is present under
 `addon/VanadielHDUI`. It provides the Ashita v4 lifecycle entry point, explicit
 module registry, versioned configuration and recovery, an in-game ImGui
-configuration shell, reversible preview mode, and placeholder descriptors for
-approved modules. It does **not** implement finished live gameplay behavior.
+configuration shell, reversible preview mode, and module descriptors for
+approved modules. Only the Player Frame has live gameplay behavior so far.
 The first in-game foundation pass confirmed load/unload, lifecycle notices,
 responsive controls, persistence, and placeholder enable-state transitions.
 The configuration shell uses a scoped first-pass navy/brass/ivory theme whose
@@ -29,6 +29,25 @@ Preview mode also provides core left-drag positioning for placeholder modules.
 Multi-element modules can expose independent or grouped movement; Party A/B/C
 default to independent positions. Final positions and movement mode persist on
 release.
+
+The first live gameplay slice is now present for the Player Frame only. It
+shows the local player's native-equivalent name, job/subjob, HP, MP, and TP
+through a reviewed Ashita `MemoryManager` local-player adapter. It does not
+implement target data, target casting, target-of-target, player casting,
+statuses, automation, or inferred/hidden information. Player Frame font
+controls now cover name, job/subjob, resource labels, and resource values, with
+left/center/right resource-value justification inside each bar. The initial
+release uses a single active combat-frame style; the earlier frameless Style 2
+concept is deferred and is not exposed as an initial configuration choice. The
+Player Frame also hides anchor selection for the initial release while keeping
+normal X/Y positioning.
+
+Player Frame graphical refinement has started with original placeholder
+draw-list layers: a configurable full-frame background layer, fixed bar tracks,
+two-color resource fills, and an integrated lower-right TP-pip backing with
+bright blue TP indicators. These placeholders are for in-game sizing and layer
+validation before final production assets. The first nontransparent PNG
+placeholder set lives under `addon/VanadielHDUI/assets/placeholders/player_frame/`.
 
 The architecture is documented in
 [`docs/CORE-ARCHITECTURE.md`](docs/CORE-ARCHITECTURE.md). Host-independent smoke
@@ -140,7 +159,7 @@ Official references:
 
 | System | Intended purpose | Current direction |
 |---|---|---|
-| Player frame | Compact HP, MP, TP, identity, and casting information near the avatar | Contextual and configurable; replaces the redundant large player HUD |
+| Player frame | Compact HP, MP, TP, identity, and casting information near the avatar | Live slice implements local player name, job/subjob, HP, MP, TP, and TP threshold pips; casting remains a future slice |
 | Target frame | Clear information about the current target | Mirrored with the player frame; target casting is excluded; observed player-initiated effects may use clearly estimated timers under D-014 |
 | Target-of-target | Passive target-relationship display | Rejected and excluded from the core addon |
 | Party frames | Primary group-combat display | Party A uses the approved six-slot group template, omits the local player outside an alliance, and retains strong HP, MP, TP, job/subjob, selection highlighting, and direct user-initiated targeting |

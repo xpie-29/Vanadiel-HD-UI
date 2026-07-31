@@ -1,7 +1,7 @@
 # Vana'diel HD UI — Design Specification
 
 **Status:** Transferred baseline; design and gameplay audit  
-**Last updated:** 2026-07-30
+**Last updated:** 2026-07-31
 
 **Authority:** Approved decisions in `DECISIONS.md` override this specification.
 
@@ -123,16 +123,69 @@ Approved visual treatment under D-015:
 Exact pixel geometry, numeric formatting defaults, contextual visibility rules,
 and production alpha values remain to be specified.
 
-The player and target families are expected to support a user-facing style
-choice:
+First live implementation slice, added 2026-07-31:
 
-- **Style 1:** concept v3, preliminarily approved under D-015.
-- **Style 2:** frameless treatment preliminarily approved under D-016. Identity
-  text floats without an outer plate; the unified inner resource container
-  remains.
+| Field | Native source/equivalent | Addon source | Timing and invalidation |
+|---|---|---|---|
+| Player identity/name | The native player/status HUD identifies the local player. | Ashita `MemoryManager` party wrapper local slot `0`, with the player wrapper as fallback. | Sampled during the addon's render/update loop; unavailable player data renders an unavailable/empty state and is cleared on reload or unload. |
+| Main job/subjob and levels | Native status/menu presentation identifies the local player's current main job, subjob, and levels. | Ashita `MemoryManager` player wrapper job and level fields; numeric job IDs are rendered through the addon's original abbreviation table. | Sampled during the addon's render/update loop; unavailable job data omits the job line rather than inventing a value. |
+| HP | The native player/status HUD displays the local player's HP state. | Ashita `MemoryManager` party wrapper local slot `0` HP/HPP or max-HP fields, with the player wrapper as fallback. | Sampled during the addon's render/update loop; invalid, absent, or zero-max values clamp to an empty bar rather than producing derived state. |
+| MP | The native player/status HUD displays the local player's MP state. | Ashita `MemoryManager` party wrapper local slot `0` MP/MPP or max-MP fields, with the player wrapper as fallback. | Sampled during the addon's render/update loop; invalid, absent, or zero-max values clamp to an empty bar rather than producing derived state. |
+| TP | The native player/status HUD displays the local player's TP. | Ashita `MemoryManager` party wrapper local slot `0` TP field, with the player wrapper as fallback if exposed. | Sampled during the addon's render/update loop; TP is clamped to the native 0-3000 presentation range. |
 
-Both styles present identical approved information and interaction. Style
-selection must not change field availability, timing, precision, or behavior.
+TP threshold pips are implemented as three visual markers for the native TP
+thresholds 1000, 2000, and 3000. They are derived only from the already
+approved local-player TP value, render inactive when TP is unavailable, and do
+not imply action readiness, ability selection, recommendation, prediction, or
+automation.
+
+This slice does not include player casting, statuses, interaction, native UI
+suppression, target information, target casting, target-of-target, automation,
+or inferred/hidden information.
+
+Player Frame module-specific font controls currently cover player name text,
+job/subjob text, resource labels, and resource values. They are explicit-size
+draw-list controls composed with global and module scale; they must not use
+`SetWindowFontScale`. Resource values also expose left, center, and right
+justification inside the bar with a small horizontal padding buffer. Resource
+labels are fixed immediately outside the bar on the left for this functional
+slice, while player name and job/subjob text align with the resource label
+column so the later graphical pass can replace the temporary spacing without
+changing field behavior.
+
+D-028 starts the Player Frame graphical placeholder pass. The current renderer
+uses original draw-list placeholders for a full-coverage lowest-layer
+background, fixed shared HP/MP/TP track treatment, two-color resource-bar
+fills, an integrated lower-right TP-pip backing, and three bright blue
+crystal-like TP pips. The background layer has `background_enabled` and
+`background_opacity` controls; background opacity is an additional
+background-only control composed with the module's effective opacity. These
+placeholders are for layer-order and size validation, not final production
+assets. The current generated refinement PNG placeholders are `pframe_bg.png`
+594x340, `pframe_bars.png` 464x184, `pframe_tpactive.png` 18x18, and
+`pframe_tpinactive.png` 18x18 under
+`addon/VanadielHDUI/assets/placeholders/player_frame/`; main background opacity
+remains configuration-owned. The TP jewel assets and renderer draw size were
+increased by about 30 percent from the first placeholder pass. The live Player
+Frame window must suppress ImGui default
+chrome/background so only the module's own layers are visible; its `Begin`
+call uses the Ashita-style open boolean and a unique no-title/no-resize/no-move
+flag set rather than duplicating aggregate decoration flags. Placeholder
+textures are loaded from the addon-local PNG files through Ashita's D3D8
+runtime when available and submitted to the ImGui draw list as texture
+pointers. Once the shared bar-track image renders, the older draw-list track
+fills, outlines, and TP-pip backing frame must be suppressed so the image
+assets own the visible frame treatment. If the D3D texture path or any older
+ImGui image helper is unavailable, the renderer falls back to draw-list
+scaffolding and logs the texture-runtime diagnostic.
+
+The initial release supports one active combat-frame runtime style:
+
+**Style 1:** concept v3, preliminarily approved under D-015.
+
+D-026 defers D-016's frameless Style 2 from the initial runtime and
+configuration path. Any later style selection must not change field
+availability, timing, precision, or behavior.
 
 ### 4.2 Target frame
 
@@ -180,13 +233,11 @@ abbreviation. Exact Ashita result values and availability require technical
 verification before implementation.
 
 The bordered medallion construction is approved for inclusion in the final
-draft. Its complete brass bezel counts as part of the icon bounds. Both Style 1
-and Style 2 target frames must revise the lower-left Check socket to fit that
-full diameter with clear padding, without clipping, non-uniform scaling, or a
-second competing bezel. The two styles should use the same icon diameter and
-socket relationship wherever their different outer-frame treatments permit.
-Exact pixel dimensions remain subject to deterministic production recreation
-and small-size legibility testing.
+draft. Its complete brass bezel counts as part of the icon bounds. The active
+Style 1 target frame must revise the lower-left Check socket to fit that full
+diameter with clear padding, without clipping, non-uniform scaling, or a second
+competing bezel. Exact pixel dimensions remain subject to deterministic
+production recreation and small-size legibility testing.
 
 ### 4.3 Target of target
 
@@ -470,8 +521,11 @@ input behavior, or persistence.
 
 ## 7. Configuration requirements
 
-Every module should support independent enable/disable, position, anchor, scale,
-style, and persistence where technically appropriate. The configuration system
+Every module should support independent enable/disable, position, scale, style,
+and persistence where technically appropriate. Anchor controls are exposed only
+where the module descriptor keeps them useful; D-027 hides the Player Frame
+anchor selector for the initial release while preserving the generic persisted
+position structure. The configuration system
 is expected to provide:
 
 - profiles and resolution/layout presets;
@@ -500,8 +554,9 @@ is documented in `CORE-ARCHITECTURE.md`.
 - The core addon lives at `addon/VanadielHDUI` and uses one entry point.
 - Only the core event router owns Ashita lifecycle, command, and render-event
   registrations.
-- Module descriptors are explicit and ordered. Placeholder modules request no
-  live game-state capability.
+- Module descriptors are explicit and ordered. The Player Frame now requests
+  the reviewed `local_player` read capability; remaining placeholder modules
+  request no live game-state capability.
 - Persisted module blocks own enabled state, an approved style identifier,
   anchor/base position, scale, opacity, descriptor-reviewed options, and a
   layout block containing movement mode and declared element offsets.
@@ -525,6 +580,10 @@ is documented in `CORE-ARCHITECTURE.md`.
   geometry, spacing, icons, and text. Effective background opacity is the
   global opacity multiplied by module opacity. Persisted presentation controls
   must not remain display-only values.
+- The first live Player Frame renderer applies the same composed global/module
+  scale and opacity path to local-player name, job/subjob, HP, MP, TP, and TP
+  threshold pips. Its geometry, font defaults, and colors are implementation
+  scaffolding pending in-game visual review, not final production tokens.
 - Production module text must not rely on `SetWindowFontScale`. The replacement
   architecture must preload and cache approved fonts outside the per-frame
   render path, measure and draw text at explicit pixel sizes, and contain font

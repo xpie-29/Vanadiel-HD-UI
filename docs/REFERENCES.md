@@ -1,6 +1,6 @@
 # Vana'diel HD UI — References and Provenance
 
-**Last updated:** 2026-07-30
+**Last updated:** 2026-07-31
 
 This register distinguishes authoritative policy/technical sources from
 inspiration-only projects. A listing here is not permission to copy code or
@@ -29,6 +29,10 @@ assets and does not imply affiliation or endorsement.
 | `assets/concepts/party-frames-stacked-concept-v1-1920x1080.png` | Rejected party-frame Proof 1 | Generated with the built-in OpenAI image-generation tool using the approved project concept family as visual references. Retained only as concept history. |
 | `assets/concepts/party-frames-raid-grid-concept-v1-1920x1080.png` | Rejected party-frame Proof 2 | Edited from the stacked proposal with the built-in OpenAI image-generation tool. Retained only as concept history. |
 | `assets/concepts/alliance-frames-three-party-concept-v1-1920x1080.png` | Approved party/alliance Proof 3 direction | Edited from the compact party proposal with the built-in OpenAI image-generation tool. Establishes Parties A, B, and C as three identical six-slot stacks without expanding approved data availability. Production geometry and long-name capacity remain pending implementation testing. |
+| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_bg.png` | Player Frame placeholder background asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 594x340, concept-v3-inspired dark glass/brass frame with left ornament; not final production art. |
+| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_bars.png` | Player Frame placeholder bar-track cluster asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 464x184, includes fixed HP/MP/TP track cluster and integrated TP-pip socket region; not final production art. |
+| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_tpactive.png` | Player Frame active TP-pip placeholder asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 18x18, enlarged bright-blue jewel direction; not final production art. |
+| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_tpinactive.png` | Player Frame inactive TP-pip placeholder asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 18x18, enlarged inactive jewel direction; not final production art. |
 
 ## 2. Official policy and platform references
 
@@ -43,10 +47,11 @@ documentation can change and must be rechecked before release.
 | [AshitaXI/Ashita-v4beta](https://github.com/AshitaXI/Ashita-v4beta) | Current public Ashita v4 beta distribution repository | Checked 2026-07-30. Its README identifies it as the current, most up-to-date publicly released v4 beta. Use with official documentation to verify platform/runtime behavior; do not copy files unless the exact file's license and intended reuse are reviewed. |
 | [Ashita v4 commands](https://docs.ashitaxi.com/usage/commands/) | Verified addon load/unload command syntax | Use when installation documentation is tested. |
 | [Ashita v4 configurations](https://docs.ashitaxi.com/usage/configurations/) | Configuration location and settings behavior | Use when profile/persistence design begins. |
-| [AshitaXI example addon](https://github.com/AshitaXI/example) | Minimal official/community-maintained v4 addon structure reference | Behavior/API study only unless exact license and intended reuse are reviewed. |
+| [AshitaXI example addon](https://github.com/AshitaXI/example) | Minimal official/community-maintained v4 addon structure reference | Behavior/API study only unless exact license and intended reuse are reviewed. Its addon notes document `addon.path` as the addon's root folder, used here only to locate project-local placeholder assets at runtime. |
 | [Ashita v4 bundled `settings` library](https://github.com/AshitaXI/Ashita-v4beta/blob/main/addons/libs/settings.lua) | Current public load/save/reload/reset, callback, alias, and per-character-path behavior | API/behavior study only. The project wraps the installed library and does not copy its source. Checked 2026-07-30. |
 | [Ashita v4 bundled `imgui` library](https://github.com/AshitaXI/Ashita-v4beta/blob/main/addons/libs/imgui.lua) | Current public ImGui color/style constants and scoped push/pop API | API/behavior study only. The project calls the installed binding and does not copy its source. Checked 2026-07-30. |
 | [Ashita v4 bundled BluCheck addon](https://github.com/AshitaXI/Ashita-v4beta/tree/main/addons/blucheck) | Current public ImGui and `d3d_present` usage example | API/behavior study only. No source or UI structure copied. Checked 2026-07-30. |
+| [Ashita v4 documentation and public examples](https://docs.ashitaxi.com/features/) | MemoryManager local player and party-wrapper behavior for name, job/subjob, HP, MP, and TP | API/behavior study only for the first Player Frame live slice. The addon calls the installed Ashita wrappers and does not copy Ashita source. Checked again 2026-07-31. |
 
 Ashita's ability to expose chat, packets, memory, commands, or rendering does not
 override the native-information boundary. Capability and product approval are
@@ -155,6 +160,7 @@ boundary revision and Q-011B pet-frame review.
 | Main-file notice | MIT License header; copyright 2023 tirem |
 | Current upstream review | Checked 2026-07-30; public default branch `main`. The README documents a single Ashita v4 addon with in-game `/xiui` configuration and selectable features. The repository-level license is GNU GPL version 3. |
 | Font/scaling behavior reviewed | At upstream commit `7d960b3bf47ea6979b3a580d97ce04e36829c0c9`, `XIUI/libs/imtext.lua` loads and caches font handles outside the per-frame render path, measures text at requested pixel sizes, and uses draw-list text calls with explicit font sizes. `XIUI/modules/partylist/display.lua` scales layout geometry separately and supplies configured font sizes to that text layer. |
+| Texture behavior reviewed | Checked current public `XIUI/libs/texturemanager.lua` and `XIUI/libs/windowbackground.lua` on 2026-07-31 after Vana'diel HD UI's addon-local placeholder PNGs were found in game but not loaded through ImGui helper guesses. XIUI demonstrates the Ashita behavior pattern of loading file textures through the installed `d3d8` runtime and submitting texture pointers to ImGui draw lists. |
 | Target-effect behavior reviewed | Reconstructs enemy effects from observed action/result messages, fixed or default duration estimates, wear-off/death messages, and zone clearing; target bar shows remaining estimates |
 | Pet behavior reviewed | Separate Avatar, Charm, Jug, Automaton, and Wyvern configurations; demonstrates name/level, HP/MP/TP, distance, status, pet-target, and command-recast possibilities |
 | Project use | Behavior reference only; no code, duration tables, submodules, or assets incorporated |
@@ -185,6 +191,12 @@ frame, use explicit text sizes for measurement/drawing, and scale geometry
 separately. No source, outline routine, constants, font choices, or other
 implementation detail was incorporated. Vana'diel HD UI's replacement remains
 to be designed and written independently.
+
+For D-028, the current upstream texture-manager and window-background paths
+were reviewed only to identify the Ashita rendering behavior: custom PNGs are
+loaded through the installed D3D8 binding and drawn through ImGui draw lists by
+texture pointer. Vana'diel HD UI's placeholder assets, loader wrapper,
+lifetime, diagnostics, and fallback renderer are original project code.
 
 ### EquipMon and other external addons
 

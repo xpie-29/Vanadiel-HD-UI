@@ -60,6 +60,7 @@ test('all runtime Lua files compile', function ()
         'core/platform/ashita.lua',
         'modules/descriptors.lua',
         'modules/placeholder.lua',
+        'modules/player_frame.lua',
         'ui/config_window.lua',
         'ui/theme.lua',
     };
@@ -70,12 +71,35 @@ test('all runtime Lua files compile', function ()
     end
 end);
 
+test('addon asset root path normalizes trailing slash', function ()
+    local source = assert(io.open(root .. '/addon/VanadielHDUI/VanadielHDUI.lua',
+        'rb')):read('*a');
+    truthy(source:find("path:gsub", 1, true) ~= nil,
+        'addon path collapses repeated separators before appending assets');
+    truthy(source:find("assets\\\\placeholders\\\\player_frame", 1, true) ~= nil,
+        'player frame asset root points inside addon folder');
+end);
+
 test('configuration defaults round trip', function ()
     local store = fakes.memory_store(nil);
     local service = config_service.new(store, descriptors, fakes.logger());
     local loaded = service:load();
     equal(loaded.schema_version, 2, 'schema version');
     equal(loaded.modules.party.enabled, false, 'placeholder default');
+    equal(loaded.modules.player_frame.options.name_font_size, 15,
+        'player name font default');
+    equal(loaded.modules.player_frame.options.job_font_size, 11,
+        'player job font default');
+    equal(loaded.modules.player_frame.options.resource_label_font_size, 11,
+        'player resource label font default');
+    equal(loaded.modules.player_frame.options.resource_value_font_size, 11,
+        'player resource value font default');
+    equal(loaded.modules.player_frame.options.resource_value_alignment, 'right',
+        'player resource value alignment default');
+    equal(loaded.modules.player_frame.options.background_enabled, true,
+        'player background enabled default');
+    equal(loaded.modules.player_frame.options.background_opacity, 0.72,
+        'player background opacity default');
     equal(loaded.modules.party.options.font_size, 14, 'party font default');
     equal(loaded.modules.party.layout.movement, 'independent',
         'party movement default');
@@ -234,6 +258,625 @@ test('module failure is isolated and cleanup is reverse ordered', function ()
         'remaining modules shut down in reverse order');
 end);
 
+test('local player capability exposes approved player frame fields', function ()
+    local platform_module = require('core.platform.ashita');
+    local fake_player = {
+        GetName = function () return 'Xpie'; end,
+        GetHP = function () return 1234; end,
+        GetHPP = function () return 75; end,
+        GetMP = function () return 321; end,
+        GetMPP = function () return 50; end,
+        GetTP = function () return 1250; end,
+        GetMainJob = function () return 1; end,
+        GetMainJobLevel = function () return 99; end,
+        GetSubJob = function () return 19; end,
+        GetSubJobLevel = function () return 49; end,
+    };
+    local fake_core = {
+        GetMemoryManager = function ()
+            return {
+                GetPlayer = function () return fake_player; end,
+            };
+        end,
+    };
+    local platform = platform_module.new({}, descriptors, fakes.logger(), {
+        ashita_core = fake_core,
+    });
+    local context = platform:create_module_context(descriptors[1],
+        defaults_module.build(descriptors).modules.player_frame);
+    local snapshot = context.game.local_player:snapshot();
+    equal(snapshot.available, true, 'local player is available');
+    equal(snapshot.name, 'Xpie', 'local player name');
+    equal(snapshot.hp, 1234, 'local player HP');
+    equal(snapshot.hp_percent, 75, 'local player HP percent');
+    equal(snapshot.mp, 321, 'local player MP');
+    equal(snapshot.mp_percent, 50, 'local player MP percent');
+    equal(snapshot.tp, 1250, 'local player TP');
+    equal(snapshot.main_job, 1, 'local player main job');
+    equal(snapshot.main_job_level, 99, 'local player main job level');
+    equal(snapshot.sub_job, 19, 'local player sub job');
+    equal(snapshot.sub_job_level, 49, 'local player sub job level');
+
+    local ok = pcall(function ()
+        platform:create_module_context({
+            id = 'blocked',
+            capabilities = { 'target_state' },
+        }, {});
+    end);
+    equal(ok, false, 'unknown live capability rejected');
+end);
+
+test('local player capability prefers local party slot vitals', function ()
+    local platform_module = require('core.platform.ashita');
+    local fake_party = {
+        GetMemberName = function (_, index)
+            return index == 0 and 'Xpie' or nil;
+        end,
+        GetMemberHP = function (_, index)
+            return index == 0 and 2345 or nil;
+        end,
+        GetMemberHPP = function (_, index)
+            return index == 0 and 80 or nil;
+        end,
+        GetMemberMP = function (_, index)
+            return index == 0 and 456 or nil;
+        end,
+        GetMemberMPP = function (_, index)
+            return index == 0 and 60 or nil;
+        end,
+        GetMemberTP = function (_, index)
+            return index == 0 and 1750 or nil;
+        end,
+    };
+    local fake_core = {
+        GetMemoryManager = function ()
+            return {
+                GetPlayer = function ()
+                    return {
+                        GetName = function () return 'Fallback'; end,
+                        GetHP = function () return 1; end,
+                        GetMP = function () return 2; end,
+                        GetTP = function () return 3; end,
+                        GetMainJob = function () return 5; end,
+                        GetMainJobLevel = function () return 75; end,
+                        GetSubJob = function () return 20; end,
+                        GetSubJobLevel = function () return 37; end,
+                    };
+                end,
+                GetParty = function () return fake_party; end,
+            };
+        end,
+    };
+    local platform = platform_module.new({}, descriptors, fakes.logger(), {
+        ashita_core = fake_core,
+    });
+    local context = platform:create_module_context(descriptors[1],
+        defaults_module.build(descriptors).modules.player_frame);
+    local snapshot = context.game.local_player:snapshot();
+    equal(snapshot.name, 'Xpie', 'party slot name preferred');
+    equal(snapshot.hp, 2345, 'party slot HP preferred');
+    equal(snapshot.hp_percent, 80, 'party slot HP percent preferred');
+    equal(snapshot.mp, 456, 'party slot MP preferred');
+    equal(snapshot.mp_percent, 60, 'party slot MP percent preferred');
+    equal(snapshot.tp, 1750, 'party slot TP preferred');
+    equal(snapshot.main_job, 5, 'player wrapper main job retained');
+    equal(snapshot.main_job_level, 75, 'player wrapper main level retained');
+    equal(snapshot.sub_job, 20, 'player wrapper sub job retained');
+    equal(snapshot.sub_job_level, 37, 'player wrapper sub level retained');
+end);
+
+test('player frame module normalizes job text and bounded vitals', function ()
+    local player_frame = require('modules.player_frame');
+    local module = player_frame.new(descriptors[1]);
+    local snapshots = {
+        {
+            available = true,
+            name = 'Xpie',
+            main_job = 1,
+            main_job_level = 99,
+            sub_job = 19,
+            sub_job_level = 49,
+            hp = 500,
+            hp_percent = 150,
+            mp = 25,
+            mp_percent = 0.5,
+            tp = 4500,
+        },
+        { available = false },
+    };
+    local index = 0;
+    module:init({
+        logger = fakes.logger(),
+        config = defaults_module.build(descriptors).modules.player_frame,
+        game = {
+            local_player = {
+                snapshot = function ()
+                    index = index + 1;
+                    return snapshots[index];
+                end,
+            },
+        },
+    });
+    module:update(0.016);
+    equal(module.state.available, true, 'snapshot accepted');
+    equal(module.state.name, 'Xpie', 'name retained');
+    equal(module.state.job_text, 'WAR 99/DNC 49', 'job line formatted');
+    equal(module.state.hp_percent, 1, 'HP percent clamped');
+    equal(module.state.mp_percent, 0.5, 'MP fractional percent retained');
+    equal(module.state.tp, 3000, 'TP clamped to native scale cap');
+    equal(module.state.tp_percent, 1, 'TP fill clamped');
+    module:update(0.016);
+    equal(module.state.available, false, 'unavailable snapshot clears state');
+end);
+
+test('player frame live renderer applies font, alignment, TP pips, and graphics',
+        function ()
+    local platform_module = require('core.platform.ashita');
+    local text_calls = {};
+    local filled_rects = {};
+    local gradient_rects = {};
+    local rects = {};
+    local sizes = {};
+    local window_background_alpha = nil;
+    local begin_flags = nil;
+    local pushed_style_vars = 0;
+    local popped_style_vars = 0;
+    local globals = {
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+        ImGuiWindowFlags_NoTitleBar = _G.ImGuiWindowFlags_NoTitleBar,
+        ImGuiWindowFlags_NoDecoration = _G.ImGuiWindowFlags_NoDecoration,
+        ImGuiWindowFlags_NoBackground = _G.ImGuiWindowFlags_NoBackground,
+        ImGuiStyleVar_WindowBorderSize = _G.ImGuiStyleVar_WindowBorderSize,
+        ImGuiStyleVar_WindowPadding = _G.ImGuiStyleVar_WindowPadding,
+    };
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = 1;
+    _G.ImGuiWindowFlags_NoMove = 2;
+    _G.ImGuiWindowFlags_NoSavedSettings = 4;
+    _G.ImGuiWindowFlags_NoTitleBar = 8;
+    _G.ImGuiWindowFlags_NoDecoration = 16;
+    _G.ImGuiWindowFlags_NoBackground = 32;
+    _G.ImGuiStyleVar_WindowBorderSize = 64;
+    _G.ImGuiStyleVar_WindowPadding = 128;
+
+    local draw_list = {
+        AddText = function (_, a, b, c, d, e)
+            if e ~= nil then
+                text_calls[#text_calls + 1] = {
+                    size = b,
+                    position = c,
+                    text = e,
+                };
+            else
+                text_calls[#text_calls + 1] = { size = nil, text = d };
+            end
+        end,
+        AddRectFilled = function (_, minimum, maximum, color)
+            filled_rects[#filled_rects + 1] = {
+                minimum = minimum,
+                maximum = maximum,
+                color = color,
+            };
+        end,
+        AddRectFilledMultiColor = function (_, minimum, maximum, left_top,
+                right_top, right_bottom, left_bottom)
+            gradient_rects[#gradient_rects + 1] = {
+                minimum = minimum,
+                maximum = maximum,
+                left_top = left_top,
+                right_top = right_top,
+                right_bottom = right_bottom,
+                left_bottom = left_bottom,
+            };
+        end,
+        AddRect = function (_, minimum, maximum, color)
+            rects[#rects + 1] = {
+                minimum = minimum,
+                maximum = maximum,
+                color = color,
+            };
+        end,
+    };
+    local fake_imgui = {
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function (value) sizes[#sizes + 1] = value; end,
+        SetNextWindowBgAlpha = function (value)
+            window_background_alpha = value;
+        end,
+        Begin = function (_, _, flags)
+            begin_flags = flags;
+            return true;
+        end,
+        End = function () end,
+        PushStyleVar = function () pushed_style_vars = pushed_style_vars + 1; end,
+        PopStyleVar = function (count) popped_style_vars = count; end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function () return draw_list; end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors, fakes.logger());
+    local renderer = platform:render_context();
+    renderer:player_frame(descriptors[1], {
+        available = true,
+        name = 'Xpie',
+        job_text = 'WAR 99/DNC 49',
+        hp = 1234,
+        hp_percent = 0.75,
+        mp = 321,
+        mp_percent = 0.5,
+        tp = 1250,
+        tp_percent = 1250 / 3000,
+    }, {
+        style = 'style_1',
+        scale = 1.0,
+        opacity = 1.0,
+        position = { x = 0, y = 0 },
+        options = {
+            name_font_size = 18,
+            job_font_size = 13,
+            resource_label_font_size = 10,
+            resource_value_font_size = 12,
+            resource_value_alignment = 'center',
+            background_enabled = true,
+            background_opacity = 0.5,
+        },
+        layout = { movement = 'group', elements = {} },
+    });
+    truthy(#sizes == 1, 'player frame size submitted');
+    equal(window_background_alpha, 0.0,
+        'native ImGui window background is transparent');
+    truthy(begin_flags >= 63, 'player frame window chrome flags applied');
+    equal(pushed_style_vars, 2, 'player frame style vars pushed');
+    equal(popped_style_vars, 2, 'player frame style vars restored');
+    equal(text_calls[1].text, 'Xpie', 'name rendered');
+    equal(text_calls[1].size, 18, 'name font size applied');
+    equal(text_calls[2].text, 'WAR 99/DNC 49', 'job text rendered');
+    equal(text_calls[2].size, 13, 'job font size applied');
+    equal(text_calls[3].text, 'HP', 'resource label rendered');
+    equal(text_calls[3].size, 10, 'resource label font size applied');
+    equal(text_calls[3].position[1], 10, 'resource label sits outside bar');
+    equal(text_calls[4].text, '1234', 'resource value rendered');
+    equal(text_calls[4].size, 12, 'resource value font size applied');
+    equal(text_calls[1].position[1], 10, 'name aligns with label left edge');
+    equal(text_calls[2].position[1], 10, 'job aligns with label left edge');
+    equal(text_calls[4].position[1], 112,
+        'resource value center alignment applied');
+    equal(filled_rects[1].color, 0x800E1A26,
+        'player frame background opacity applied');
+    equal(gradient_rects[1].left_top, 0xDD1E724B,
+        'HP bar uses two-color gradient start');
+    equal(gradient_rects[1].right_top, 0xDD45C984,
+        'HP bar uses two-color gradient end');
+    equal(gradient_rects[3].left_top, 0xDD8F7621,
+        'TP bar uses two-color gradient start');
+    equal(gradient_rects[3].right_top, 0xDDE2C45D,
+        'TP bar uses two-color gradient end');
+    equal(filled_rects[6].minimum[1], 184.5,
+        'TP pips align to TP bar right edge');
+    equal(filled_rects[6].minimum[2], 111,
+        'TP pips sit below TP bar');
+    equal(filled_rects[6].color, 0xFF7DD6FF,
+        'first TP threshold pip filled at 1250 TP');
+    equal(filled_rects[7].color, 0x99384955,
+        'second TP threshold pip inactive below 2000 TP');
+    equal(filled_rects[8].color, 0x99384955,
+        'third TP threshold pip inactive below 3000 TP');
+    equal(#rects, 8, 'background, resource bars, and TP pips are framed');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
+end);
+
+test('player frame renderer uses placeholder image assets when available',
+        function ()
+    local platform_module = require('core.platform.ashita');
+    local image_calls = {};
+    local loaded_paths = {};
+    local rects = {};
+    local filled_rects = {};
+    local globals = {
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+        ImGuiWindowFlags_NoTitleBar = _G.ImGuiWindowFlags_NoTitleBar,
+        ImGuiWindowFlags_NoDecoration = _G.ImGuiWindowFlags_NoDecoration,
+        ImGuiWindowFlags_NoBackground = _G.ImGuiWindowFlags_NoBackground,
+    };
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = 1;
+    _G.ImGuiWindowFlags_NoMove = 2;
+    _G.ImGuiWindowFlags_NoSavedSettings = 4;
+    _G.ImGuiWindowFlags_NoTitleBar = 8;
+    _G.ImGuiWindowFlags_NoDecoration = 16;
+    _G.ImGuiWindowFlags_NoBackground = 32;
+
+    local draw_list = {
+        AddText = function () end,
+        AddRectFilled = function (_, minimum, maximum, color)
+            filled_rects[#filled_rects + 1] = {
+                minimum = minimum,
+                maximum = maximum,
+                color = color,
+            };
+        end,
+        AddRectFilledMultiColor = function () end,
+        AddRect = function (_, minimum, maximum, color)
+            rects[#rects + 1] = {
+                minimum = minimum,
+                maximum = maximum,
+                color = color,
+            };
+        end,
+        AddImage = function (_, texture, minimum, maximum, ...)
+            image_calls[#image_calls + 1] = {
+                texture = texture,
+                minimum = minimum,
+                maximum = maximum,
+                extra = { ... },
+            };
+        end,
+    };
+    local fake_imgui = {
+        CreateTextureFromFile = function (_, path)
+            loaded_paths[#loaded_paths + 1] = path;
+            return 'texture:' .. path;
+        end,
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function () end,
+        SetNextWindowBgAlpha = function () end,
+        Begin = function () return true; end,
+        End = function () end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function () return draw_list; end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors,
+        fakes.logger(), {
+            asset_root = 'addon\\VanadielHDUI\\assets\\placeholders\\player_frame',
+        });
+    platform:render_context():player_frame(descriptors[1], {
+        available = true,
+        name = 'Xpie',
+        job_text = 'WAR 99/DNC 49',
+        hp = 1234,
+        hp_percent = 0.75,
+        mp = 321,
+        mp_percent = 0.5,
+        tp = 2500,
+        tp_percent = 2500 / 3000,
+    }, defaults_module.build(descriptors).modules.player_frame);
+
+    equal(#loaded_paths, 4, 'player frame placeholder assets loaded');
+    equal(loaded_paths[1]:find('pframe_', 1, true) ~= nil, true,
+        'placeholder asset path used');
+    equal(#image_calls, 5, 'background, bars, and three TP pips drawn');
+    equal(image_calls[1].minimum[1], 0, 'background image at window origin');
+    equal(image_calls[2].minimum[1], 38, 'bar image at bar origin');
+    equal(image_calls[3].minimum[1], 184.5,
+        'first TP pip image at lower right');
+    equal(#rects, 0,
+        'image-backed bars and TP pips do not draw legacy outlines');
+    equal(#filled_rects, 0,
+        'image-backed bars and TP pips do not draw legacy tracks');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
+end);
+
+test('player frame chrome flags can come from Ashita imgui table', function ()
+    local platform_module = require('core.platform.ashita');
+    local begin_flags = nil;
+    local globals = {
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+        ImGuiWindowFlags_NoTitleBar = _G.ImGuiWindowFlags_NoTitleBar,
+        ImGuiWindowFlags_NoDecoration = _G.ImGuiWindowFlags_NoDecoration,
+        ImGuiWindowFlags_NoBackground = _G.ImGuiWindowFlags_NoBackground,
+        ImGuiWindowFlags_NoCollapse = _G.ImGuiWindowFlags_NoCollapse,
+        ImGuiWindowFlags_NoScrollbar = _G.ImGuiWindowFlags_NoScrollbar,
+        ImGuiWindowFlags_NoScrollWithMouse =
+            _G.ImGuiWindowFlags_NoScrollWithMouse,
+    };
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = nil;
+    _G.ImGuiWindowFlags_NoMove = nil;
+    _G.ImGuiWindowFlags_NoSavedSettings = nil;
+    _G.ImGuiWindowFlags_NoTitleBar = nil;
+    _G.ImGuiWindowFlags_NoDecoration = nil;
+    _G.ImGuiWindowFlags_NoBackground = nil;
+    _G.ImGuiWindowFlags_NoCollapse = nil;
+    _G.ImGuiWindowFlags_NoScrollbar = nil;
+    _G.ImGuiWindowFlags_NoScrollWithMouse = nil;
+
+    local fake_imgui = {
+        ImGuiWindowFlags_NoTitleBar = 1,
+        ImGuiWindowFlags_NoResize = 2,
+        ImGuiWindowFlags_NoMove = 4,
+        ImGuiWindowFlags_NoScrollbar = 8,
+        ImGuiWindowFlags_NoScrollWithMouse = 16,
+        ImGuiWindowFlags_NoCollapse = 32,
+        ImGuiWindowFlags_NoBackground = 128,
+        ImGuiWindowFlags_NoSavedSettings = 256,
+        ImGuiWindowFlags_NoBringToFrontOnFocus = 8192,
+        ImGuiWindowFlags_NoNavFocus = 131072,
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function () end,
+        SetNextWindowBgAlpha = function () end,
+        Begin = function (_, is_open, flags)
+            equal(is_open, true, 'player frame Begin uses Ashita-style open flag');
+            begin_flags = flags;
+            return true;
+        end,
+        End = function () end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function ()
+            return {
+                AddText = function () end,
+                AddRectFilled = function () end,
+                AddRectFilledMultiColor = function () end,
+                AddRect = function () end,
+            };
+        end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors, fakes.logger());
+    platform:render_context():player_frame(descriptors[1], {
+        available = true,
+        name = 'Xpie',
+        job_text = 'WAR 99/DNC 49',
+        hp = 1,
+        hp_percent = 1,
+        mp = 1,
+        mp_percent = 1,
+        tp = 1,
+        tp_percent = 1 / 3000,
+    }, defaults_module.build(descriptors).modules.player_frame);
+
+    equal(begin_flags, 139711, 'player frame uses imgui-table chrome flags');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
+end);
+
+test('player frame renderer passes D3D texture pointers to AddImage',
+        function ()
+    local previous_platform = package.loaded['core.platform.ashita'];
+    local previous_ffi = package.loaded.ffi;
+    local previous_d3d8 = package.loaded.d3d8;
+    local previous_common = package.loaded.common;
+    local previous_preload_d3d8 = package.preload.d3d8;
+    local previous_preload_common = package.preload.common;
+    package.loaded['core.platform.ashita'] = nil;
+    package.loaded.ffi = {
+        C = {
+            S_OK = 0,
+            D3DXCreateTextureFromFileA = function (_, _, texture_out)
+                texture_out[0] = 'native-texture';
+                return 0;
+            end,
+        },
+        new = function () return {}; end,
+        cast = function (kind, value)
+            if kind == 'uint32_t' then
+                return 90210;
+            end
+            return value;
+        end,
+    };
+    package.loaded.d3d8 = nil;
+    package.preload.d3d8 = function ()
+        return {
+            get_device = function () return 'device'; end,
+            gc_safe_release = function (texture) return texture; end,
+        };
+    end;
+    package.loaded.common = true;
+    package.preload.common = function () return true; end;
+
+    local platform_module = require('core.platform.ashita');
+    local image_calls = {};
+    local globals = {
+        ImGuiCond_Always = _G.ImGuiCond_Always,
+        ImGuiWindowFlags_NoResize = _G.ImGuiWindowFlags_NoResize,
+        ImGuiWindowFlags_NoMove = _G.ImGuiWindowFlags_NoMove,
+        ImGuiWindowFlags_NoSavedSettings = _G.ImGuiWindowFlags_NoSavedSettings,
+        ImGuiWindowFlags_NoTitleBar = _G.ImGuiWindowFlags_NoTitleBar,
+        ImGuiWindowFlags_NoDecoration = _G.ImGuiWindowFlags_NoDecoration,
+        ImGuiWindowFlags_NoBackground = _G.ImGuiWindowFlags_NoBackground,
+    };
+    _G.ImGuiCond_Always = 0;
+    _G.ImGuiWindowFlags_NoResize = 1;
+    _G.ImGuiWindowFlags_NoMove = 2;
+    _G.ImGuiWindowFlags_NoSavedSettings = 4;
+    _G.ImGuiWindowFlags_NoTitleBar = 8;
+    _G.ImGuiWindowFlags_NoDecoration = 16;
+    _G.ImGuiWindowFlags_NoBackground = 32;
+
+    local draw_list = {
+        AddText = function () end,
+        AddRectFilled = function () end,
+        AddRectFilledMultiColor = function () end,
+        AddRect = function () end,
+        AddImage = function (_, texture)
+            image_calls[#image_calls + 1] = texture;
+        end,
+    };
+    local fake_imgui = {
+        SetNextWindowPos = function () end,
+        SetNextWindowSize = function () end,
+        SetNextWindowBgAlpha = function () end,
+        Begin = function () return true; end,
+        End = function () end,
+        GetWindowPos = function () return 0, 0; end,
+        GetWindowDrawList = function () return draw_list; end,
+        GetFont = function () return {}; end,
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+        Dummy = function () end,
+    };
+    local platform = platform_module.new(fake_imgui, descriptors,
+        fakes.logger(), {
+            asset_root = 'addon\\VanadielHDUI\\assets\\placeholders\\player_frame',
+        });
+    platform:render_context():player_frame(descriptors[1], {
+        available = true,
+        name = 'Xpie',
+        job_text = 'WAR 99/DNC 49',
+        hp = 1234,
+        hp_percent = 0.75,
+        mp = 321,
+        mp_percent = 0.5,
+        tp = 2500,
+        tp_percent = 2500 / 3000,
+    }, defaults_module.build(descriptors).modules.player_frame);
+
+    equal(image_calls[1], 90210, 'D3D texture pointer passed to AddImage');
+
+    for name, value in pairs(globals) do
+        _G[name] = value;
+    end
+    package.loaded['core.platform.ashita'] = previous_platform;
+    package.loaded.ffi = previous_ffi;
+    package.loaded.d3d8 = previous_d3d8;
+    package.loaded.common = previous_common;
+    package.preload.d3d8 = previous_preload_d3d8;
+    package.preload.common = previous_preload_common;
+end);
+
+test('player frame asset diagnostics include missing png paths', function ()
+    local platform_module = require('core.platform.ashita');
+    local logger = fakes.logger();
+    platform_module.new({}, descriptors, logger, {
+        asset_root = 'Z:\\missing\\player_frame',
+    });
+
+    local found_png_path = false;
+    for _, entry in ipairs(logger.entries) do
+        if entry:find('pframe_bg.png', 1, true) ~= nil then
+            found_png_path = true;
+        end
+    end
+    truthy(found_png_path, 'missing asset diagnostic includes png path');
+end);
+
 test('preview initializes disabled party without persisting enablement', function ()
     local defaults = defaults_module.build(descriptors);
     local preview = preview_module.new();
@@ -332,6 +975,94 @@ test('configuration theme restores scoped ImGui style state', function ()
     end
     if globals.ImGuiStyleVar_WindowRounding == nil then
         _G.ImGuiStyleVar_WindowRounding = nil;
+    end
+end);
+
+test('single-style modules do not show style selector', function ()
+    local config_window_module = require('ui.config_window');
+    local button_labels = {};
+    local text_labels = {};
+    local fake_imgui = {
+        Separator = function () end,
+        TextColored = function (_, text) text_labels[#text_labels + 1] = text; end,
+        TextDisabled = function (text) text_labels[#text_labels + 1] = text; end,
+        Text = function (text) text_labels[#text_labels + 1] = text; end,
+        SameLine = function () end,
+        Checkbox = function () return false; end,
+        Button = function (label)
+            button_labels[#button_labels + 1] = label;
+            return false;
+        end,
+        SliderFloat = function () return false; end,
+        SliderInt = function () return false; end,
+        InputFloat = function () return false; end,
+    };
+    local application = {
+        module_state = function () return 'disabled'; end,
+        module_option_keys = function () return {}; end,
+    };
+    local window = config_window_module.new(fake_imgui, descriptors);
+    window:_module_controls(application, descriptors[1], {
+        enabled = false,
+        style = 'style_1',
+        scale = 1.0,
+        opacity = 1.0,
+        position = { anchor = 'top_left', x = 0, y = 0 },
+        options = {},
+        layout = { movement = 'group', elements = {} },
+    });
+
+    for _, label in ipairs(button_labels) do
+        truthy(label:find('Next style##player_frame', 1, true) == nil,
+            'single-style selector button hidden');
+    end
+    for _, label in ipairs(text_labels) do
+        truthy(tostring(label):find('Style:', 1, true) == nil,
+            'single-style selector text hidden');
+    end
+end);
+
+test('player frame does not show anchor selector', function ()
+    local config_window_module = require('ui.config_window');
+    local button_labels = {};
+    local text_labels = {};
+    local fake_imgui = {
+        Separator = function () end,
+        TextColored = function (_, text) text_labels[#text_labels + 1] = text; end,
+        TextDisabled = function (text) text_labels[#text_labels + 1] = text; end,
+        Text = function (text) text_labels[#text_labels + 1] = text; end,
+        SameLine = function () end,
+        Checkbox = function () return false; end,
+        Button = function (label)
+            button_labels[#button_labels + 1] = label;
+            return false;
+        end,
+        SliderFloat = function () return false; end,
+        SliderInt = function () return false; end,
+        InputFloat = function () return false; end,
+    };
+    local application = {
+        module_state = function () return 'disabled'; end,
+        module_option_keys = function () return {}; end,
+    };
+    local window = config_window_module.new(fake_imgui, descriptors);
+    window:_module_controls(application, descriptors[1], {
+        enabled = false,
+        style = 'style_1',
+        scale = 1.0,
+        opacity = 1.0,
+        position = { anchor = 'center', x = 0, y = 0 },
+        options = {},
+        layout = { movement = 'group', elements = {} },
+    });
+
+    for _, label in ipairs(button_labels) do
+        truthy(label:find('Next anchor##player_frame', 1, true) == nil,
+            'player frame anchor button hidden');
+    end
+    for _, label in ipairs(text_labels) do
+        truthy(tostring(label):find('Anchor:', 1, true) == nil,
+            'player frame anchor text hidden');
     end
 end);
 

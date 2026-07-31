@@ -19,8 +19,19 @@ local application_module = require('core.application');
 local command_router = require('core.command_router');
 local event_router = require('core.event_router');
 
+local function child_path(root, child)
+    if root == nil or root == '' then
+        return nil;
+    end
+    local path = root .. '\\' .. child;
+    return path:gsub('[\\/]+', '\\');
+end
+
 local logger = logger_module.new('VanaHD');
-local platform = platform_module.new(imgui, descriptors, logger);
+local asset_root = child_path(addon.path, 'assets\\placeholders\\player_frame');
+local platform = platform_module.new(imgui, descriptors, logger, {
+    asset_root = asset_root,
+});
 local store = ashita_store.new(settings, 'settings', logger:scoped('config-store'));
 local config = config_service.new(store, descriptors, logger:scoped('config'));
 local preview = preview_module.new();

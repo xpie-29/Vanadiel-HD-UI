@@ -3,7 +3,7 @@
 **Phase:** Core architecture and configuration foundation validated in game
 **Last updated:** 2026-07-31
 
-**Implementation status:** Foundation validated; live gameplay modules not started
+**Implementation status:** Foundation validated; live Player Frame identity/vitals slice implemented
 
 ## Current outcome
 
@@ -21,9 +21,10 @@ central routing, an explicit module registry, independently toggleable
 placeholder descriptors, fault isolation, a versioned configuration service,
 Ashita settings persistence, validation/migration/recovery, an ImGui
 configuration shell, reversible preview state, and global/per-module resets.
-All gameplay descriptors request zero live-game capabilities and start
-disabled. No finished gameplay collection or module rendering has been
-implemented.
+The Player Frame descriptor now requests the first reviewed live capability,
+`local_player`, for local player identity/name, job/subjob, HP, MP, and TP
+only. Remaining gameplay descriptors request zero live-game capabilities and
+start disabled.
 
 Xpie's 2026-07-30 in-game pass confirmed addon load/unload behavior, lifecycle
 chat notices, responsive configuration controls, persistence across
@@ -73,6 +74,64 @@ now visibly applies across Party A/B/C preview titles. This restores the
 expected preview behavior without reintroducing `SetWindowFontScale` or
 window-only scaling. Production font assets and live gameplay renderers remain
 future work.
+
+The first live Player Frame slice was then implemented on 2026-07-31. It reads
+only Ashita `MemoryManager` local-player-equivalent data for name, HP, MP, and
+TP, clamps invalid or unavailable values to an empty/unavailable state, and
+renders a narrow original HP/MP/TP frame through the existing composed
+opacity/scale path. It does not add job/subjob text, casting, statuses, target
+information, target casting, target-of-target, interaction, automation, or
+hidden/inferred information. Xpie's first in-game check showed the frame
+appearing but the values unavailable, so the adapter was corrected to prefer
+the party wrapper's local slot `0` for name/HP/MP/TP with player-wrapper
+fallbacks.
+
+Xpie's follow-up in-game check on 2026-07-31 confirmed that Player Frame name,
+HP, MP, and TP display correctly, update in real time during value changes and
+combat, persist across addon unload/reload, and survive zoning between city
+and external areas.
+
+The latest Player Frame slice adds the approved D-015 job/subjob identity line
+under the player name in `JOB LVL/SUBJOB LVL` format, sourced from the Ashita
+player wrapper. It also adds Player Frame-specific font controls for name,
+job/subjob, resource labels, and resource values. Resource values can be left,
+center, or right justified inside the bar with padding, resource labels sit
+outside the bars on the left, and the name/job text aligns with the same label
+column in preparation for later graphical refinement. TP threshold pips are
+implemented as three lower-right TP-row markers for the native 1000/2000/3000 TP
+thresholds, derived only from the already-approved local TP value.
+
+After Xpie confirmed that all Player Frame functionality continued to work in
+game, the project moved into Player Frame graphical refinement rather than
+starting other modules. D-028 records the current placeholder layer direction:
+a full-coverage background with background-only enable/opacity controls, fixed
+shared bar tracks, two-color resource fills, an integrated lower-right TP-pip
+backing, and bright blue crystal-like TP pips. These are original draw-list
+placeholders and generated PNG placeholders pending in-game sizing and final
+production asset work. The refined asset files are `pframe_bg.png` 594x340,
+`pframe_bars.png` 464x184, `pframe_tpactive.png` 18x18, and
+`pframe_tpinactive.png` 18x18 under the runtime addon folder.
+After an in-game diagnostic confirmed that the files were found but no ImGui
+helper loaded them, the optional texture-backed path was revised to load
+addon-local PNGs through Ashita's D3D8 runtime and pass texture pointers to the
+draw list, with the original draw-list fallback preserved if that runtime is
+unavailable.
+Xpie's next in-game check confirmed that all four Player Frame placeholder
+image files rendered as expected. A cleanup pass then made Player Frame window
+chrome suppression read Ashita ImGui flags from either globals or the `imgui`
+table, and stopped drawing the old resource-bar track fills/outlines when the
+shared `pframe_bars.png` track asset is active.
+After Xpie reported that the ImGui title bar and TP-pip placeholder frame still
+remained, the Player Frame `Begin` call was adjusted to use the Ashita-style
+open boolean, the chrome bitmask was reduced to unique explicit flags with
+official numeric fallbacks, and the draw-list TP-pip backing frame was
+suppressed whenever the shared bar-track image is active.
+The next graphical iteration replaced the first rough placeholders with
+higher-detail original refinement placeholders based on concept-v3 direction:
+a dark beveled main frame with a left ornament, brass-bordered shared
+HP/MP/TP tracks, integrated lower-right pip sockets, and enlarged 18x18 active
+and inactive TP jewels. The runtime TP jewel draw size was increased by about
+30 percent to match the new source assets.
 
 ## Resume point — core checkpoint (2026-07-30)
 
@@ -130,9 +189,11 @@ inset-frame treatment and requested the D-015 refinements now shown in
 preserve conflicts between exploratory material and controlling decisions.
 Exact production dimensions and alpha values remain unresolved.
 
-Concept v3 is now preserved as preliminarily approved Style 1. Frameless Style
-2 is preliminarily approved at
-`assets/concepts/combat-hud-style-2-concept-v1-1920x1080.png`.
+Concept v3 is now preserved as preliminarily approved Style 1 and, under D-026,
+is the only combat-frame runtime style planned for the initial release.
+Frameless Style 2 remains a deferred concept reference at
+`assets/concepts/combat-hud-style-2-concept-v1-1920x1080.png`, not an
+initial-release configuration option.
 
 The original nine-state bordered Check-status icon family at
 `assets/concepts/check-status-icon-family-concept-v1-1920x1080.png` is approved
@@ -216,6 +277,9 @@ forward as implementation-time validation items.
 - [x] D-015 visual approvals and refined combat HUD concept v3.
 - [x] Style 1 preservation and separate Style 2 comparison concept.
 - [x] Preliminary Style 2 approval.
+- [x] D-026 initial-release single combat-frame style decision recorded.
+- [x] D-027 Player Frame anchor selector hidden for initial release while
+  preserving generic position persistence.
 - [x] D-017 bordered Check icon family approved for the final draft.
 - [x] D-018 square status-icon construction and complete 644-file concept
   coverage.
@@ -270,20 +334,49 @@ forward as implementation-time validation items.
   text.
 - [x] Shared party title font sizing applied across Party A/B/C previews.
 - [x] Host-independent Lua smoke harness.
-- [x] Fifteen smoke checks passing under LuaJIT 2.1.1779665312: runtime
+- [x] First live Player Frame slice for local player name, HP, MP, and TP,
+  with a reviewed `local_player` adapter and no target/cast/status expansion.
+- [x] In-game validation of Player Frame name, HP, MP, and TP live updates
+  across combat, addon reload/unload, and zoning.
+- [x] Player Frame job/subjob identity line and module-specific font controls
+  for name, job/subjob, resource labels, and resource values.
+- [x] Player Frame TP threshold pips for 1000/2000/3000 TP, with no new live
+  source beyond the reviewed local-player TP value.
+- [x] D-028 Player Frame graphical placeholder direction recorded and initial
+  draw-list placeholder layers implemented.
+- [x] Player Frame placeholder PNGs generated and wired through an optional
+  Ashita/D3D8 texture-backed renderer path with draw-list fallback.
+- [x] Player Frame live window chrome/background suppression tightened; texture
+  loading failures now log a fallback diagnostic.
+- [x] Player Frame placeholder image rendering confirmed in game; title-bar
+  and legacy resource-outline cleanup implemented for retest.
+- [x] Follow-up Player Frame cleanup for Ashita-style window `Begin`, unique
+  chrome flags, and image-backed TP-pip backing suppression.
+- [x] Twenty-six smoke checks passing under LuaJIT 2.1.1779665312: runtime
   compilation, defaults/round trip, migration, invalid/future recovery, resets,
   fault isolation, reverse cleanup, party preview lifecycle, and deterministic
   event cleanup, configuration-theme stack restoration, independent layout
   persistence, generic module/element drag commits, composed preview opacity,
-  composed preview scale, and shared Party A/B/C title sizing.
+  composed preview scale, shared Party A/B/C title sizing, local-player
+  capability exposure, local party-slot vitals preference, Player Frame
+  job/subjob formatting, Player Frame state normalization, and Player Frame
+  font/alignment-control rendering including TP pip threshold and graphical
+  placeholder rendering, optional placeholder image asset loading, hidden style
+  selectors for modules with only one runtime style, hidden Player Frame anchor
+  controls, D3D texture-pointer submission, image-backed bar-outline/TP-pip
+  backing suppression, imgui-table chrome flag resolution, Ashita-style live
+  window `Begin`, missing-placeholder path diagnostics, and addon asset-root
+  path normalization.
 
 ## Not started
 
-- Live Ashita game-state/data-source adapters.
+- Live Ashita game-state/data-source adapters beyond the first local-player
+  Player Frame slice.
 - Final visual tokens, exact component dimensions, or production mockups.
 - Status-icon border normalization and individual-file generation.
 - Post-export status-icon filename-to-design verification.
-- Finished gameplay-module state management and production rendering.
+- Finished gameplay-module state management and production rendering beyond
+  the current Player Frame identity/vitals slice.
 - Production positioning behavior beyond the verified scaffold drag controls.
 - Approved production font loading/caching beyond the current scaffold preview
   text layer.
@@ -303,7 +396,7 @@ forward as implementation-time validation items.
 
 | Area | Preserved direction | Readiness |
 |---|---|---|
-| Player frame | Compact HP/MP/TP/identity anchor with integrated player casting | Design direction approved; details needed |
+| Player frame | Compact HP/MP/TP/identity anchor with integrated player casting | Live local-player name, job/subjob, HP, MP, TP, and TP pips implemented with Style 1 only for initial release; casting, final geometry, and in-game validation of latest slice remain |
 | Target frame | Complementary/mirrored frame; native party icons and estimated observed player-initiated enemy effects | Direction approved; D-014 technical prototype required |
 | Target of target | Excluded | Rejected under Q-001 |
 | Casting | Player casting integrated; target casting excluded | Approved/rejected split resolved |

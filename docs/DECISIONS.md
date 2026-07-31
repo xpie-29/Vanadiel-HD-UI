@@ -1,6 +1,6 @@
 # Vana'diel HD UI — Decision Record
 
-**Last updated:** 2026-07-30
+**Last updated:** 2026-07-31
 
 **Authority:** This is the highest-priority project design document.
 
@@ -735,6 +735,67 @@ Statuses:
   attribution, and reversibility review.
 - **Limit:** The core addon and installer must not silently modify EquipMon or
   incorporate its code or assets without a separate reuse decision.
+
+### D-026 — Initial release single combat-frame style
+
+- **Status:** Approved
+- **Date:** 2026-07-31
+- **Source:** Xpie revision before Player Frame TP-pip implementation
+- **Decision:** Ship the initial release with one combat-frame layout style
+  only. Player Frame and Target Frame runtime descriptors should expose
+  `style_1` as the only selectable style, and the configuration UI should not
+  show a style selector for modules with only one approved runtime style.
+- **Effect on D-016:** D-016's frameless combat-frame Style 2 remains preserved
+  as a deferred concept/reference direction, but it is no longer planned as a
+  user-selectable initial-release presentation.
+- **Future path:** A later Style 2 can be reintroduced through an explicit
+  implementation decision, descriptor update, and configuration migration or
+  validation note if persisted style values need special handling.
+
+### D-027 — Player Frame anchor control hidden for initial release
+
+- **Status:** Approved
+- **Date:** 2026-07-31
+- **Source:** Xpie revision before Player Frame TP-pip implementation
+- **Decision:** The Player Frame should not expose a user-facing anchor selector
+  in the initial release. There is no current value in changing this module's
+  anchor independently.
+- **Implementation boundary:** Keep the generic persisted position structure
+  and X/Y positioning path intact for schema stability and clean separation
+  from other modules. Hide only the Player Frame anchor control through module
+  descriptor metadata. Other modules may continue to expose anchors where useful.
+
+### D-028 — Player Frame graphical placeholder layers
+
+- **Status:** Approved
+- **Date:** 2026-07-31
+- **Source:** Xpie graphical-layer direction after Player Frame functional
+  validation
+- **Decision:** Continue Player Frame refinement before starting other modules.
+  Add original placeholder graphical layers for the Player Frame: a lowest-layer
+  full-coverage background, fixed shared HP/MP/TP track treatment, two-color
+  resource fills, an integrated TP-pip backing, and three bright blue
+  crystal-like TP pips.
+- **Placeholder assets:** Generate original PNG placeholders under
+  `addon/VanadielHDUI/assets/placeholders/player_frame/`: `pframe_bg.png` at 594x340,
+  `pframe_bars.png` at 464x184, `pframe_tpactive.png` at 18x18, and
+  `pframe_tpinactive.png` at 18x18. The sizes are a first 4K-oriented pass
+  derived from the current scaffold by the project's height-based scaling rule;
+  the TP jewels were increased by about 30 percent during the refinement pass.
+- **Background opacity:** The Player Frame background layer has its own
+  enable/disable and opacity controls. This opacity is an additional
+  background-only control used to satisfy the original Style 2 intent for the
+  initial single-style release; it must not require exposing a second
+  combat-frame runtime style.
+- **TP-pip placement:** Preserve D-015's lower-right pip direction. The TP-pip
+  backing should integrate with the lower-right edge of the TP bar region.
+- **Implementation boundary:** Placeholder graphics may be draw-list
+  scaffolding or project-local placeholder PNGs while sizing and layer order
+  are validated. Main background opacity is handled through configuration.
+  Shaped refinement placeholders may use transparent pixels around the visible
+  frame, tracks, and jewels, but should not bake configurable opacity into the
+  main panel. Final production graphical assets must remain original and should
+  replace the placeholders only after in-game layout refinement.
 
 ## Contradiction register
 

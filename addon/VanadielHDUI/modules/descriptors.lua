@@ -1,4 +1,5 @@
 local placeholder = require('modules.placeholder');
+local player_frame = require('modules.player_frame');
 
 local function option_boolean(default)
     return { type = 'boolean', default = default };
@@ -18,27 +19,45 @@ local function option_enum(default, values)
     return { type = 'enum', default = default, values = values };
 end
 
-local function descriptor(id, name, styles, options, notes, layout)
+local function descriptor(id, name, styles, options, notes, layout, capabilities,
+        factory, controls)
     local value = {
         id = id,
         name = name,
         default_enabled = false,
         styles = styles or { 'standard' },
         dependencies = {},
-        capabilities = {},
+        capabilities = capabilities or {},
         options = options or {},
         notes = notes,
         layout = layout,
+        controls = controls or {},
     };
     value.factory = function ()
+        if factory ~= nil then
+            return factory(value);
+        end
         return placeholder.new(value);
     end;
     return value;
 end
 
 local descriptors = {
-    descriptor('player_frame', 'Player Frame', { 'style_1', 'style_2' }),
-    descriptor('target_frame', 'Target Frame', { 'style_1', 'style_2' }),
+    descriptor('player_frame', 'Player Frame', { 'style_1' },
+        {
+            name_font_size = option_number(15, 8, 32, true),
+            job_font_size = option_number(11, 8, 24, true),
+            resource_label_font_size = option_number(11, 8, 24, true),
+            resource_value_font_size = option_number(11, 8, 24, true),
+            resource_value_alignment = option_enum('right',
+                { 'left', 'center', 'right' }),
+            background_enabled = option_boolean(true),
+            background_opacity = option_number(0.72, 0.0, 1.0, false),
+        }, 'Live local player name, job/subjob, HP, MP, and TP.',
+        nil, { 'local_player' }, function (value)
+            return player_frame.new(value);
+        end, { anchor = false }),
+    descriptor('target_frame', 'Target Frame', { 'style_1' }),
     descriptor('party', 'Party and Alliance Frames', { 'proof_3' }, {
         show_group_labels = option_boolean(false),
         font_size = option_number(14, 8, 32, true),

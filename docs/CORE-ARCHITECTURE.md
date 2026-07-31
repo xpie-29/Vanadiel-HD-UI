@@ -32,8 +32,9 @@ addon/VanadielHDUI/
 │   └── platform/
 │       └── ashita.lua           # Ashita/ImGui boundary and restricted contexts
 ├── modules/
-│   ├── descriptors.lua          # Explicit ordered placeholder registry
-│   └── placeholder.lua          # Non-gameplay module implementation
+│   ├── descriptors.lua          # Explicit ordered module registry
+│   ├── placeholder.lua          # Non-gameplay module implementation
+│   └── player_frame.lua         # First live local-player unit-frame slice
 └── ui/
     └── config_window.lua        # In-game configuration shell
 tests/
@@ -141,15 +142,22 @@ actions, inject packets, or send game commands.
 
 The platform adapter is the only core object allowed to know about Ashita
 globals. Its adapter factory accepts a descriptor's reviewed capability list
-and returns only those named read surfaces. This phase registers placeholders
-with no live-game capabilities, making accidental packet or memory access
-impossible through the module context.
+and returns only those named read surfaces. The first live capability is
+`local_player`, granted only to the Player Frame descriptor for local player
+name, job/subjob, HP, MP, and TP. It reads Ashita's `MemoryManager` party
+wrapper local slot `0` first for vitals, then falls back to the player wrapper
+where appropriate. Job/subjob data comes from the player wrapper. The adapter
+exposes a snapshot surface rather than raw Ashita objects. Placeholder modules
+still receive no live-game capabilities, making accidental packet or unreviewed
+memory access impossible through their module context.
 
 The render facade similarly prevents modules from owning the global ImGui
 configuration window. Placeholder modules can draw only through a preview
-surface provided by the platform adapter. Production render APIs and game-state
-adapters must be added later, field by field, after the native-source and
-boundary gates in `DESIGN-SPEC.md`.
+surface provided by the platform adapter. The Player Frame can draw the first
+live local-player name/job/HP/MP/TP surface through a narrow render-context
+method with module-specific explicit-size font controls. Additional production
+render APIs and game-state adapters must be added later, field by field, after
+the native-source and boundary gates in `DESIGN-SPEC.md`.
 
 ## 7. Configuration ownership and persistence
 
@@ -294,6 +302,11 @@ require Ashita or FFXI. It covers:
 - global and per-module reset;
 - enable/disable initialization and shutdown;
 - failure isolation between modules;
+- the reviewed local-player capability, local party-slot vitals path,
+  job/subjob formatting, Player Frame state normalization, and Player Frame
+  font/alignment-control, TP pip rendering, graphical placeholder layers, and
+  optional placeholder image asset loading with draw-list fallback and
+  diagnostic logging;
 - reverse-order cleanup;
 - deterministic event registration/unregistration;
 - preview entry, party preview shape, exit, and unload cleanup;

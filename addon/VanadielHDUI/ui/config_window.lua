@@ -96,18 +96,23 @@ function config_window:_module_controls(application, descriptor, module_settings
         end
     end
 
-    imgui.Text('Style: ' .. tostring(module_settings.style));
-    imgui.SameLine();
-    if imgui.Button('Next style##' .. descriptor.id) then
-        application:set_module_value(descriptor.id, { 'style' },
-            next_value(descriptor.styles, module_settings.style));
+    if #(descriptor.styles or {}) > 1 then
+        imgui.Text('Style: ' .. tostring(module_settings.style));
+        imgui.SameLine();
+        if imgui.Button('Next style##' .. descriptor.id) then
+            application:set_module_value(descriptor.id, { 'style' },
+                next_value(descriptor.styles, module_settings.style));
+        end
     end
 
-    imgui.Text('Anchor: ' .. tostring(module_settings.position.anchor));
-    imgui.SameLine();
-    if imgui.Button('Next anchor##' .. descriptor.id) then
-        application:set_module_value(descriptor.id, { 'position', 'anchor' },
-            next_value(anchors, module_settings.position.anchor));
+    local controls = descriptor.controls or {};
+    if controls.anchor ~= false then
+        imgui.Text('Anchor: ' .. tostring(module_settings.position.anchor));
+        imgui.SameLine();
+        if imgui.Button('Next anchor##' .. descriptor.id) then
+            application:set_module_value(descriptor.id, { 'position', 'anchor' },
+                next_value(anchors, module_settings.position.anchor));
+        end
     end
 
     local scale = { module_settings.scale };

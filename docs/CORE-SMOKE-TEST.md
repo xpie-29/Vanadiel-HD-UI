@@ -22,6 +22,7 @@ Result:
 
 ```text
 [PASS] all runtime Lua files compile
+[PASS] addon asset root path normalizes trailing slash
 [PASS] configuration defaults round trip
 [PASS] legacy schema migrates before validation
 [PASS] invalid fields recover independently
@@ -29,15 +30,25 @@ Result:
 [PASS] module and global resets are isolated
 [PASS] multi-element layout positions and movement mode persist independently
 [PASS] module failure is isolated and cleanup is reverse ordered
+[PASS] local player capability exposes approved player frame fields
+[PASS] local player capability prefers local party slot vitals
+[PASS] player frame module normalizes job text and bounded vitals
+[PASS] player frame live renderer applies font, alignment, TP pips, and graphics
+[PASS] player frame renderer uses placeholder image assets when available
+[PASS] player frame chrome flags can come from Ashita imgui table
+[PASS] player frame renderer passes D3D texture pointers to AddImage
+[PASS] player frame asset diagnostics include missing png paths
 [PASS] preview initializes disabled party without persisting enablement
 [PASS] event router registration and cleanup are deterministic
 [PASS] configuration theme restores scoped ImGui style state
+[PASS] single-style modules do not show style selector
+[PASS] player frame does not show anchor selector
 [PASS] layout editor commits generic module or element targets once on release
 [PASS] preview rendering composes global and module opacity
 [PASS] preview rendering composes global and module scale into window size
 [PASS] party preview font size applies across all preview groups
 
-15 test(s), 0 failure(s)
+26 test(s), 0 failure(s)
 ```
 
 This run does not by itself prove Ashita binary compatibility or in-game ImGui
@@ -79,6 +90,17 @@ window-font-scaling experiment remains historical context only; the current
 build uses original explicit-size preview text rendering and does not render an
 enabled placeholder outside preview.
 
+After the first Player Frame in-game check showed the live frame but no local
+player values, the `local_player` adapter was corrected to prefer Ashita
+`MemoryManager` party slot `0` for name, HP, MP, and TP, with the player
+wrapper retained only as a fallback. This correction has host smoke coverage
+and was verified by Xpie in game on 2026-07-31.
+
+The current host smoke pass adds coverage for Player Frame job/subjob
+formatting, module-specific font controls, resource-value alignment, and
+single-style/player-anchor module configuration behavior. Those controls still
+require an in-game visual/configuration recheck.
+
 Copy `addon/VanadielHDUI` to the Ashita v4 `addons` directory, then:
 
 1. Run `/addon load VanadielHDUI`.
@@ -111,6 +133,9 @@ Copy `addon/VanadielHDUI` to the Ashita v4 `addons` directory, then:
 16. Run `/addon unload VanadielHDUI`; confirm no preview or configuration
     windows remain and no unload error is printed.
 
-Do not treat this checklist as gameplay-module acceptance. No live game-state,
-packet, targeting, cancellation, native-UI suppression, or production HUD
+Do not treat this checklist as full gameplay-module acceptance. The only live
+game-state surface currently included is the first Player Frame local-player
+name/job/HP/MP/TP slice with TP threshold pips derived from the reviewed local
+TP value. No packet handling, targeting, cancellation, native-UI suppression,
+target frame, target casting, target-of-target, or broader production HUD
 behavior is included in this phase.
