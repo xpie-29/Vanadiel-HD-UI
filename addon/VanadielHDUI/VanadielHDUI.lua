@@ -1,6 +1,6 @@
 addon.name = 'VanadielHDUI';
 addon.author = 'Xpie';
-addon.version = '0.1.0';
+addon.version = '0.1.1';
 addon.desc = "Core architecture and configuration foundation for Vana'diel HD UI.";
 
 require('common');

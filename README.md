@@ -1,6 +1,7 @@
 # Vana'diel HD UI
 
 > **Project status:** Core foundation validated in game; gameplay modules remain placeholders
+> **Current working version:** `0.1.1` (`v0.1.0` archived as the stable checkpoint tag)
 > This README is a living draft. Features, installation steps, file locations, and configuration commands marked **TBD** will be completed and verified as development progresses.
 
 > **Document authority:** This README preserves the transferred baseline and

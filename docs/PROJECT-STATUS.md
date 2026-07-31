@@ -1,7 +1,7 @@
 # Vana'diel HD UI — Project Status
 
 **Phase:** Core architecture and configuration foundation validated in game
-**Last updated:** 2026-07-30
+**Last updated:** 2026-07-31
 
 **Implementation status:** Foundation validated; live gameplay modules not started
 
@@ -11,6 +11,10 @@ The visual conception phase is complete. The first implementation phase is
 also complete: the repository now contains an original Ashita v4 addon
 foundation under `addon/VanadielHDUI`, the architecture record in
 `docs/CORE-ARCHITECTURE.md`, and host-independent tests under `tests/`.
+
+On 2026-07-31, the validated checkpoint at commit `51f605e` was archived as
+annotated tag `v0.1.0`. The repository working version now advances to
+`v0.1.1` so subsequent fixes and development do not blur the stable baseline.
 
 The foundation provides the verified Ashita lifecycle/event entry point,
 central routing, an explicit module registry, independently toggleable
