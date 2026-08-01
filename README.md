@@ -42,12 +42,23 @@ concept is deferred and is not exposed as an initial configuration choice. The
 Player Frame also hides anchor selection for the initial release while keeping
 normal X/Y positioning.
 
-Player Frame graphical refinement has started with original placeholder
-draw-list layers: a configurable full-frame background layer, fixed bar tracks,
-two-color resource fills, and an integrated lower-right TP-pip backing with
-bright blue TP indicators. These placeholders are for in-game sizing and layer
-validation before final production assets. The first nontransparent PNG
-placeholder set lives under `addon/VanadielHDUI/assets/placeholders/player_frame/`.
+Player Frame graphical refinement has moved to original production PNG layers:
+same-canvas `pframe_bg.png` and `pframe_bars.png` layers, plus active TP jewel
+overlays in `pframe_tpactive.png`. The inactive TP state is now baked into the
+bar-track layer, and the Player Frame renderer scales all image layers from
+the shared production canvas in `addon/VanadielHDUI/assets/player_frame/`.
+The Player Frame now also supports a color-selectable active-TP jewel flash,
+global text outline controls, and module-level text colors for the name,
+job/subjob, resource values, and each HP/MP/TP label. Player Frame text
+defaults to `#F1EAD8`, and the HP/MP/TP bar gradients now use the current
+approved production-review colors.
+
+Known Player Frame follow-up work remains before moving on to Target Frame:
+manual `pframe_bg.png` transparency and ornament-size adjustment, font-size
+legibility review at the default frame scale, active TP-jewel flash debugging,
+granular X/Y text micro-position controls, and a configuration-menu usability
+cleanup informed by the exact Ashita warning/error messages from the latest
+in-game review.
 
 The architecture is documented in
 [`docs/CORE-ARCHITECTURE.md`](docs/CORE-ARCHITECTURE.md). Host-independent smoke

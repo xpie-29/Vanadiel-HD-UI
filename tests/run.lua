@@ -51,6 +51,7 @@ test('all runtime Lua files compile', function ()
         'core/module_registry.lua',
         'core/preview.lua',
         'core/presentation.lua',
+        'core/color.lua',
         'core/util.lua',
         'core/config/ashita_store.lua',
         'core/config/defaults.lua',
@@ -76,7 +77,7 @@ test('addon asset root path normalizes trailing slash', function ()
         'rb')):read('*a');
     truthy(source:find("path:gsub", 1, true) ~= nil,
         'addon path collapses repeated separators before appending assets');
-    truthy(source:find("assets\\\\placeholders\\\\player_frame", 1, true) ~= nil,
+    truthy(source:find("assets\\\\player_frame", 1, true) ~= nil,
         'player frame asset root points inside addon folder');
 end);
 
@@ -86,20 +87,35 @@ test('configuration defaults round trip', function ()
     local loaded = service:load();
     equal(loaded.schema_version, 2, 'schema version');
     equal(loaded.modules.party.enabled, false, 'placeholder default');
-    equal(loaded.modules.player_frame.options.name_font_size, 15,
+    equal(loaded.modules.player_frame.options.name_font_size, 18,
         'player name font default');
-    equal(loaded.modules.player_frame.options.job_font_size, 11,
+    equal(loaded.modules.player_frame.options.job_font_size, 13,
         'player job font default');
-    equal(loaded.modules.player_frame.options.resource_label_font_size, 11,
+    equal(loaded.modules.player_frame.options.resource_label_font_size, 16,
         'player resource label font default');
-    equal(loaded.modules.player_frame.options.resource_value_font_size, 11,
+    equal(loaded.modules.player_frame.options.resource_value_font_size, 16,
         'player resource value font default');
     equal(loaded.modules.player_frame.options.resource_value_alignment, 'right',
         'player resource value alignment default');
+    equal(loaded.global.font_family, 'default', 'global font family default');
+    equal(loaded.global.font_outline_enabled, true,
+        'global font outline enabled default');
+    equal(loaded.global.font_outline_size, 2,
+        'global font outline size default');
+    equal(loaded.global.font_outline_color, '#000000',
+        'global font outline color default');
+    equal(loaded.modules.player_frame.options.name_font_color, '#F1EAD8',
+        'player name font color default');
+    equal(loaded.modules.player_frame.options.hp_label_font_color, '#F1EAD8',
+        'player HP label font color default');
+    equal(loaded.modules.player_frame.options.tp_jewel_flash_enabled, true,
+        'player TP jewel flash enabled default');
+    equal(loaded.modules.player_frame.options.tp_jewel_flash_color, '#FFFFFF',
+        'player TP jewel flash color default');
     equal(loaded.modules.player_frame.options.background_enabled, true,
         'player background enabled default');
-    equal(loaded.modules.player_frame.options.background_opacity, 0.72,
-        'player background opacity default');
+    equal(loaded.modules.player_frame.options.background_opacity, nil,
+        'player background opacity option removed');
     equal(loaded.modules.party.options.font_size, 14, 'party font default');
     equal(loaded.modules.party.layout.movement, 'independent',
         'party movement default');
@@ -142,23 +158,35 @@ end);
 test('invalid fields recover independently', function ()
     local invalid = defaults_module.build(descriptors);
     invalid.global.user_scale = 'large';
+    invalid.global.font_family = 'papyrus';
+    invalid.global.font_outline_size = 1.5;
+    invalid.global.font_outline_color = 'black';
     invalid.modules.party.enabled = 'yes';
     invalid.modules.party.style = 'rejected_proof';
     invalid.modules.party.position.x = math.huge;
     invalid.modules.party.options.font_size = 14.5;
     invalid.modules.party.options.show_group_labels = true;
+    invalid.modules.player_frame.options.hp_label_font_color = 'red';
 
     local service = config_service.new(
         fakes.memory_store(invalid), descriptors, fakes.logger());
     local loaded = service:load();
     equal(loaded.global.user_scale, 1.0, 'invalid scale recovered');
+    equal(loaded.global.font_family, 'default',
+        'invalid font family recovered');
+    equal(loaded.global.font_outline_size, 2,
+        'invalid outline size recovered');
+    equal(loaded.global.font_outline_color, '#000000',
+        'invalid outline color recovered');
     equal(loaded.modules.party.enabled, false, 'invalid enabled recovered');
     equal(loaded.modules.party.style, 'proof_3', 'invalid style recovered');
     equal(loaded.modules.party.position.x, 0, 'invalid position recovered');
     equal(loaded.modules.party.options.font_size, 14, 'fractional font recovered');
     equal(loaded.modules.party.options.show_group_labels, true,
         'valid sibling survived');
-    truthy(#service:get_report() >= 5, 'recoveries were reported');
+    equal(loaded.modules.player_frame.options.hp_label_font_color, '#F1EAD8',
+        'invalid module color recovered');
+    truthy(#service:get_report() >= 9, 'recoveries were reported');
 end);
 
 test('future schema fails closed to defaults', function ()
@@ -409,6 +437,37 @@ test('player frame module normalizes job text and bounded vitals', function ()
     equal(module.state.available, false, 'unavailable snapshot clears state');
 end);
 
+test('presentation draws configured font outline around explicit-size text',
+        function ()
+    local presentation = require('core.presentation');
+    local text_calls = {};
+    local draw_list = {
+        AddText = function (_, position, call_color, text)
+            text_calls[#text_calls + 1] = {
+                position = position,
+                color = call_color,
+                text = text,
+            };
+        end,
+    };
+    local presenter = presentation.new({
+        GetTextLineHeight = function () return 16; end,
+        CalcTextSize = function (text) return #text * 8; end,
+    });
+    presenter:set_options({
+        font_outline_enabled = true,
+        font_outline_size = 2,
+        font_outline_color = '#112233',
+    });
+    presenter:draw_text(draw_list, 'Xpie', 10, 20, 0xFFFFFFFF, 18);
+
+    equal(#text_calls, 9, 'outline draws eight passes plus fill text');
+    equal(text_calls[1].color, 0xFF332211, 'outline color packed for ImGui');
+    equal(text_calls[9].color, 0xFFFFFFFF, 'fill text drawn last');
+    equal(text_calls[9].position[1], 10, 'fill x unchanged');
+    equal(text_calls[9].position[2], 20, 'fill y unchanged');
+end);
+
 test('player frame live renderer applies font, alignment, TP pips, and graphics',
         function ()
     local platform_module = require('core.platform.ashita');
@@ -524,11 +583,12 @@ test('player frame live renderer applies font, alignment, TP pips, and graphics'
             resource_value_font_size = 12,
             resource_value_alignment = 'center',
             background_enabled = true,
-            background_opacity = 0.5,
         },
         layout = { movement = 'group', elements = {} },
     });
     truthy(#sizes == 1, 'player frame size submitted');
+    equal(sizes[1][1], 482.5, 'player frame default width uses review scale');
+    equal(sizes[1][2], 203.75, 'player frame default height uses review scale');
     equal(window_background_alpha, 0.0,
         'native ImGui window background is transparent');
     truthy(begin_flags >= 63, 'player frame window chrome flags applied');
@@ -540,41 +600,37 @@ test('player frame live renderer applies font, alignment, TP pips, and graphics'
     equal(text_calls[2].size, 13, 'job font size applied');
     equal(text_calls[3].text, 'HP', 'resource label rendered');
     equal(text_calls[3].size, 10, 'resource label font size applied');
-    equal(text_calls[3].position[1], 10, 'resource label sits outside bar');
+    equal(text_calls[3].position[1], 94.25, 'resource label sits outside bar');
     equal(text_calls[4].text, '1234', 'resource value rendered');
     equal(text_calls[4].size, 12, 'resource value font size applied');
-    equal(text_calls[1].position[1], 10, 'name aligns with label left edge');
-    equal(text_calls[2].position[1], 10, 'job aligns with label left edge');
-    equal(text_calls[4].position[1], 112,
+    equal(text_calls[1].position[1], 88.75, 'name uses production canvas x');
+    equal(text_calls[2].position[1], 88.75, 'job uses production canvas x');
+    equal(text_calls[4].position[1], 286.25,
         'resource value center alignment applied');
-    equal(filled_rects[1].color, 0x800E1A26,
-        'player frame background opacity applied');
-    equal(gradient_rects[1].left_top, 0xDD1E724B,
+    equal(filled_rects[1].color, 0xFF0E1A26,
+        'player frame fallback background rendered fully opaque');
+    equal(gradient_rects[1].left_top, 0xDD6C6CE2,
         'HP bar uses two-color gradient start');
-    equal(gradient_rects[1].right_top, 0xDD45C984,
+    equal(gradient_rects[1].right_top, 0xDD9C9CFA,
         'HP bar uses two-color gradient end');
-    equal(gradient_rects[3].left_top, 0xDD8F7621,
+    equal(gradient_rects[3].left_top, 0xDDCE9838,
         'TP bar uses two-color gradient start');
-    equal(gradient_rects[3].right_top, 0xDDE2C45D,
+    equal(gradient_rects[3].right_top, 0xDDEEC478,
         'TP bar uses two-color gradient end');
-    equal(filled_rects[6].minimum[1], 184.5,
+    equal(filled_rects[5].minimum[1], 372.875,
         'TP pips align to TP bar right edge');
-    equal(filled_rects[6].minimum[2], 111,
+    equal(filled_rects[5].minimum[2], 176.125,
         'TP pips sit below TP bar');
-    equal(filled_rects[6].color, 0xFF7DD6FF,
+    equal(filled_rects[5].color, 0xFF7DD6FF,
         'first TP threshold pip filled at 1250 TP');
-    equal(filled_rects[7].color, 0x99384955,
-        'second TP threshold pip inactive below 2000 TP');
-    equal(filled_rects[8].color, 0x99384955,
-        'third TP threshold pip inactive below 3000 TP');
-    equal(#rects, 8, 'background, resource bars, and TP pips are framed');
+    equal(#rects, 7, 'fallback background, resource bars, and TP pips are framed');
 
     for name, value in pairs(globals) do
         _G[name] = value;
     end
 end);
 
-test('player frame renderer uses placeholder image assets when available',
+test('player frame renderer uses production image assets when available',
         function ()
     local platform_module = require('core.platform.ashita');
     local image_calls = {};
@@ -643,7 +699,7 @@ test('player frame renderer uses placeholder image assets when available',
     };
     local platform = platform_module.new(fake_imgui, descriptors,
         fakes.logger(), {
-            asset_root = 'addon\\VanadielHDUI\\assets\\placeholders\\player_frame',
+            asset_root = 'addon\\VanadielHDUI\\assets\\player_frame',
         });
     platform:render_context():player_frame(descriptors[1], {
         available = true,
@@ -657,14 +713,15 @@ test('player frame renderer uses placeholder image assets when available',
         tp_percent = 2500 / 3000,
     }, defaults_module.build(descriptors).modules.player_frame);
 
-    equal(#loaded_paths, 4, 'player frame placeholder assets loaded');
+    equal(#loaded_paths, 3, 'player frame production assets loaded');
     equal(loaded_paths[1]:find('pframe_', 1, true) ~= nil, true,
-        'placeholder asset path used');
-    equal(#image_calls, 5, 'background, bars, and three TP pips drawn');
+        'production asset path used');
+    equal(#image_calls, 6,
+        'background, bars, active TP pips, and flash overlays drawn');
     equal(image_calls[1].minimum[1], 0, 'background image at window origin');
-    equal(image_calls[2].minimum[1], 38, 'bar image at bar origin');
-    equal(image_calls[3].minimum[1], 184.5,
-        'first TP pip image at lower right');
+    equal(image_calls[2].minimum[1], 0, 'bar image shares canvas origin');
+    equal(image_calls[3].minimum[1], 372.875,
+        'first active TP jewel image at lower right');
     equal(#rects, 0,
         'image-backed bars and TP pips do not draw legacy outlines');
     equal(#filled_rects, 0,
@@ -834,7 +891,7 @@ test('player frame renderer passes D3D texture pointers to AddImage',
     };
     local platform = platform_module.new(fake_imgui, descriptors,
         fakes.logger(), {
-            asset_root = 'addon\\VanadielHDUI\\assets\\placeholders\\player_frame',
+            asset_root = 'addon\\VanadielHDUI\\assets\\player_frame',
         });
     platform:render_context():player_frame(descriptors[1], {
         available = true,

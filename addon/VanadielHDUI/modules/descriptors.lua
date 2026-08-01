@@ -19,6 +19,10 @@ local function option_enum(default, values)
     return { type = 'enum', default = default, values = values };
 end
 
+local function option_color(default)
+    return { type = 'color', default = default };
+end
+
 local function descriptor(id, name, styles, options, notes, layout, capabilities,
         factory, controls)
     local value = {
@@ -45,14 +49,21 @@ end
 local descriptors = {
     descriptor('player_frame', 'Player Frame', { 'style_1' },
         {
-            name_font_size = option_number(15, 8, 32, true),
-            job_font_size = option_number(11, 8, 24, true),
-            resource_label_font_size = option_number(11, 8, 24, true),
-            resource_value_font_size = option_number(11, 8, 24, true),
+            name_font_size = option_number(18, 8, 32, true),
+            job_font_size = option_number(13, 8, 24, true),
+            resource_label_font_size = option_number(16, 8, 24, true),
+            resource_value_font_size = option_number(16, 8, 24, true),
             resource_value_alignment = option_enum('right',
                 { 'left', 'center', 'right' }),
+            name_font_color = option_color('#F1EAD8'),
+            job_font_color = option_color('#F1EAD8'),
+            resource_value_font_color = option_color('#F1EAD8'),
+            hp_label_font_color = option_color('#F1EAD8'),
+            mp_label_font_color = option_color('#F1EAD8'),
+            tp_label_font_color = option_color('#F1EAD8'),
             background_enabled = option_boolean(true),
-            background_opacity = option_number(0.72, 0.0, 1.0, false),
+            tp_jewel_flash_enabled = option_boolean(true),
+            tp_jewel_flash_color = option_color('#FFFFFF'),
         }, 'Live local player name, job/subjob, HP, MP, and TP.',
         nil, { 'local_player' }, function (value)
             return player_frame.new(value);

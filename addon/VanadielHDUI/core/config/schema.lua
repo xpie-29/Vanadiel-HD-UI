@@ -1,4 +1,5 @@
 local util = require('core.util');
+local color = require('core.color');
 
 local schema = {};
 
@@ -8,6 +9,7 @@ local anchors = {
     'bottom_left', 'bottom', 'bottom_right',
 };
 local movement_modes = { 'group', 'independent' };
+local font_families = { 'default', 'sans', 'serif', 'mono' };
 
 local function recover(report, path, reason, fallback)
     report[#report + 1] = ('%s recovered (%s)'):format(path, reason);
@@ -45,6 +47,13 @@ local function enum_value(value, fallback, values, path, report)
     return recover(report, path, 'unsupported choice', fallback);
 end
 
+local function color_value(value, fallback, path, report)
+    if color.is_hex(value) then
+        return value:upper();
+    end
+    return recover(report, path, 'expected #RRGGBB color', fallback);
+end
+
 local function option_value(value, rule, path, report)
     if rule.type == 'boolean' then
         return boolean_value(value, rule.default, path, report);
@@ -55,6 +64,9 @@ local function option_value(value, rule, path, report)
     end
     if rule.type == 'enum' then
         return enum_value(value, rule.default, rule.values, path, report);
+    end
+    if rule.type == 'color' then
+        return color_value(value, rule.default, path, report);
     end
     return recover(report, path, 'unknown schema rule', rule.default);
 end
@@ -72,6 +84,20 @@ function schema.validate(settings, defaults, descriptors)
         defaults.global.opacity, 0.0, 1.0, false, 'global.opacity', report);
     normalized.global.pixel_snap = boolean_value(raw_global.pixel_snap,
         defaults.global.pixel_snap, 'global.pixel_snap', report);
+    normalized.global.font_family = enum_value(raw_global.font_family,
+        defaults.global.font_family, font_families, 'global.font_family', report);
+    normalized.global.font_outline_enabled =
+        boolean_value(raw_global.font_outline_enabled,
+            defaults.global.font_outline_enabled,
+            'global.font_outline_enabled', report);
+    normalized.global.font_outline_size =
+        number_value(raw_global.font_outline_size,
+            defaults.global.font_outline_size, 0, 6, true,
+            'global.font_outline_size', report);
+    normalized.global.font_outline_color =
+        color_value(raw_global.font_outline_color,
+            defaults.global.font_outline_color,
+            'global.font_outline_color', report);
 
     local raw_modules = type(settings.modules) == 'table' and settings.modules or {};
     for _, descriptor in ipairs(descriptors) do

@@ -1,6 +1,6 @@
 # Core Foundation Smoke Test
 
-**Last run:** 2026-07-31
+**Last run:** 2026-08-01
 
 **Runtime:** LuaJIT 2.1.1779665312
 
@@ -14,7 +14,7 @@ Use a LuaJIT/MoonJIT-compatible interpreter:
 .\tests\smoke.ps1 -Lua <path-to-luajit-or-lua>
 ```
 
-The test entry point is `tests/run.lua`. On 2026-07-31 it was executed with
+The test entry point is `tests/run.lua`. On 2026-08-01 it was executed with
 LuaJIT 2.1.1779665312 installed through Scoop. It was also executed with the
 transient Fengari CLI as an independent Lua parser/runtime check.
 
@@ -33,8 +33,9 @@ Result:
 [PASS] local player capability exposes approved player frame fields
 [PASS] local player capability prefers local party slot vitals
 [PASS] player frame module normalizes job text and bounded vitals
+[PASS] presentation draws configured font outline around explicit-size text
 [PASS] player frame live renderer applies font, alignment, TP pips, and graphics
-[PASS] player frame renderer uses placeholder image assets when available
+[PASS] player frame renderer uses production image assets when available
 [PASS] player frame chrome flags can come from Ashita imgui table
 [PASS] player frame renderer passes D3D texture pointers to AddImage
 [PASS] player frame asset diagnostics include missing png paths
@@ -48,7 +49,7 @@ Result:
 [PASS] preview rendering composes global and module scale into window size
 [PASS] party preview font size applies across all preview groups
 
-26 test(s), 0 failure(s)
+27 test(s), 0 failure(s)
 ```
 
 This run does not by itself prove Ashita binary compatibility or in-game ImGui
@@ -97,9 +98,19 @@ wrapper retained only as a fallback. This correction has host smoke coverage
 and was verified by Xpie in game on 2026-07-31.
 
 The current host smoke pass adds coverage for Player Frame job/subjob
-formatting, module-specific font controls, resource-value alignment, and
-single-style/player-anchor module configuration behavior. Those controls still
-require an in-game visual/configuration recheck.
+formatting, module-specific font controls, resource-value alignment, text color
+validation, configured font-outline drawing, active TP-jewel flash overlays,
+and single-style/player-anchor module configuration behavior. Those controls
+still require an in-game visual/configuration recheck.
+
+The 2026-08-01 in-game review left several Player Frame items that host smoke
+tests cannot validate: manual `pframe_bg.png` transparency/decorative-element
+asset changes, font-size legibility at 4K viewing distance, active TP-jewel
+flash behavior, and granular text micro-positioning. The configuration menu
+also needs an in-game usability pass, including review of recent Ashita-level
+warnings/errors. Before revising the config UI further, locate the relevant
+Ashita log or console output and record each warning/error message exactly so
+it can be addressed one at a time.
 
 Copy `addon/VanadielHDUI` to the Ashita v4 `addons` directory, then:
 

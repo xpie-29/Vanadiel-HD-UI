@@ -44,6 +44,10 @@ function defaults.build(descriptors)
             user_scale = 1.0,
             opacity = 1.0,
             pixel_snap = true,
+            font_family = 'default',
+            font_outline_enabled = true,
+            font_outline_size = 2,
+            font_outline_color = '#000000',
         },
         modules = {},
     };

@@ -1,7 +1,7 @@
 # Vana'diel HD UI — Project Status
 
 **Phase:** Core architecture and configuration foundation validated in game
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-01
 
 **Implementation status:** Foundation validated; live Player Frame identity/vitals slice implemented
 
@@ -103,14 +103,12 @@ thresholds, derived only from the already-approved local TP value.
 
 After Xpie confirmed that all Player Frame functionality continued to work in
 game, the project moved into Player Frame graphical refinement rather than
-starting other modules. D-028 records the current placeholder layer direction:
-a full-coverage background with background-only enable/opacity controls, fixed
-shared bar tracks, two-color resource fills, an integrated lower-right TP-pip
-backing, and bright blue crystal-like TP pips. These are original draw-list
-placeholders and generated PNG placeholders pending in-game sizing and final
-production asset work. The refined asset files are `pframe_bg.png` 594x340,
-`pframe_bars.png` 464x184, `pframe_tpactive.png` 18x18, and
-`pframe_tpinactive.png` 18x18 under the runtime addon folder.
+starting other modules. D-028 records the current production layer direction:
+a full-coverage background with background enable/disable control, fixed shared
+bar tracks, two-color resource fills, an integrated lower-right inactive TP-pip
+backing, and active bright-blue TP jewels. The production asset files are
+`pframe_bg.png` 1930x815, `pframe_bars.png` 1930x815, and
+`pframe_tpactive.png` 98x98 under `addon/VanadielHDUI/assets/player_frame/`.
 After an in-game diagnostic confirmed that the files were found but no ImGui
 helper loaded them, the optional texture-backed path was revised to load
 addon-local PNGs through Ashita's D3D8 runtime and pass texture pointers to the
@@ -132,6 +130,57 @@ a dark beveled main frame with a left ornament, brass-bordered shared
 HP/MP/TP tracks, integrated lower-right pip sockets, and enlarged 18x18 active
 and inactive TP jewels. The runtime TP jewel draw size was increased by about
 30 percent to match the new source assets.
+Xpie then supplied final Player Frame production assets. The renderer now loads
+the three-asset production set from `addon/VanadielHDUI/assets/player_frame/`,
+draws `pframe_bg.png` and `pframe_bars.png` at the same 0,0 canvas origin,
+uses the bar image as the inactive TP-jewel state, and draws `pframe_tpactive.png`
+only for met 1000/2000/3000 TP thresholds. The Player Frame-specific
+`background_opacity` option was removed while preserving `background_enabled`.
+After the first in-game production-asset check, Xpie confirmed that module
+scale 0.50 produced the desired default visual size at the current resolution,
+while text was too small. The renderer now treats module scale 1.0 as that
+default review size by drawing the 1930x815 runtime PNG canvas at one-quarter
+of its source dimensions, and the Player Frame font defaults were normalized
+upward for that scale.
+The latest Player Frame readability pass adds a global explicit-size text
+outline with enable, size, and color controls; a persisted global font-family
+preference for the future approved font-loader path; module-level Player Frame
+text color controls; the approved HP/MP/TP gradient defaults; and a
+color-selectable pulsing overlay for active TP jewels. The font-family
+preference is configuration-ready, while the current renderer still uses the
+active Ashita ImGui font handle until a dedicated font-loading/caching layer is
+implemented.
+
+Xpie's final 2026-08-01 review marked the current Player Frame direction as
+mostly good but not complete. The known follow-up work is visual refinement,
+text readability, TP-jewel flash debugging, Player Frame micro-positioning,
+and configuration-menu cleanup. These are presentation and configuration tasks
+for the already approved local-player fields; they do not authorize Target
+Frame work or any new gameplay information.
+
+## Player Frame follow-up tasks
+
+- Adjust `pframe_bg.png` transparency manually in Photoshop. The current
+  runtime no longer applies a separate Player Frame background-opacity control
+  because the background opacity is baked into the production asset.
+- Adjust the size/proportion of the `pframe_bg.png` decorative element manually
+  in Photoshop, then verify same-canvas registration with `pframe_bars.png`.
+- Review font sizing relative to the Player Frame's production canvas and
+  default scale so labels are legible at 4K living-room distance without
+  requiring users to max out the module font-size sliders.
+- Debug the active TP-jewel flash. The current color-selectable pulse is
+  implemented and smoke-tested, but Xpie's in-game review says it does not
+  behave as expected.
+- Add granular X/Y micro-position controls for Player Frame text elements so
+  name, job/subjob, HP label, MP label, TP label, and resource values can be
+  user-adjusted without requiring perfect hard-coded placement.
+- Review the configuration-menu layout and usability. The current generic
+  descriptor-driven control list has become cluttered as Player Frame options
+  increased and needs grouping, clearer labels, and a more readable structure.
+- Investigate recent Ashita-level warning/error messages emitted by the
+  configuration menu. Determine how to access the relevant Ashita logs, capture
+  the exact warnings, and review them one at a time before changing the config
+  UI implementation.
 
 ## Resume point — core checkpoint (2026-07-30)
 
@@ -342,7 +391,7 @@ forward as implementation-time validation items.
   for name, job/subjob, resource labels, and resource values.
 - [x] Player Frame TP threshold pips for 1000/2000/3000 TP, with no new live
   source beyond the reviewed local-player TP value.
-- [x] D-028 Player Frame graphical placeholder direction recorded and initial
+- [x] D-028 Player Frame graphical layer direction recorded and initial
   draw-list placeholder layers implemented.
 - [x] Player Frame placeholder PNGs generated and wired through an optional
   Ashita/D3D8 texture-backed renderer path with draw-list fallback.
@@ -352,7 +401,13 @@ forward as implementation-time validation items.
   and legacy resource-outline cleanup implemented for retest.
 - [x] Follow-up Player Frame cleanup for Ashita-style window `Begin`, unique
   chrome flags, and image-backed TP-pip backing suppression.
-- [x] Twenty-six smoke checks passing under LuaJIT 2.1.1779665312: runtime
+- [x] Player Frame production three-asset pipeline integrated: same-canvas
+  background/bars layers, active-only TP jewels, baked background opacity, and
+  production-canvas scale mapping.
+- [x] Player Frame readability controls for global text outline, persisted
+  font-family preference, Player Frame text colors, approved bar gradients, and
+  active TP-jewel flash color.
+- [x] Twenty-seven smoke checks passing under LuaJIT 2.1.1779665312: runtime
   compilation, defaults/round trip, migration, invalid/future recovery, resets,
   fault isolation, reverse cleanup, party preview lifecycle, and deterministic
   event cleanup, configuration-theme stack restoration, independent layout
@@ -361,12 +416,13 @@ forward as implementation-time validation items.
   capability exposure, local party-slot vitals preference, Player Frame
   job/subjob formatting, Player Frame state normalization, and Player Frame
   font/alignment-control rendering including TP pip threshold and graphical
-  placeholder rendering, optional placeholder image asset loading, hidden style
+  production rendering, optional production image asset loading, hidden style
   selectors for modules with only one runtime style, hidden Player Frame anchor
   controls, D3D texture-pointer submission, image-backed bar-outline/TP-pip
   backing suppression, imgui-table chrome flag resolution, Ashita-style live
   window `Begin`, missing-placeholder path diagnostics, and addon asset-root
-  path normalization.
+  path normalization, color-setting validation, and configured text-outline
+  drawing.
 
 ## Not started
 
@@ -378,8 +434,8 @@ forward as implementation-time validation items.
 - Finished gameplay-module state management and production rendering beyond
   the current Player Frame identity/vitals slice.
 - Production positioning behavior beyond the verified scaffold drag controls.
-- Approved production font loading/caching beyond the current scaffold preview
-  text layer.
+- Approved production font loading/caching beyond the current active Ashita
+  ImGui font handle and persisted font-family preference.
 - Extension of coherent scale composition from scaffold previews into future
   gameplay renderers, icons, and final component geometry.
 - Focused in-game retest of shared party title sizing and module/global scale
@@ -419,8 +475,15 @@ forward as implementation-time validation items.
 2. Identify and verify the synthesis-history native source.
 3. Record the exact Ashita v4 build used for the validated core/configuration
    pass when it is available.
+4. Provide the exact Ashita warning/error text from the latest configuration
+   menu review if the log location cannot be identified directly from the
+   installed environment.
 
 ## Recommended next work
+
+Before the general backlog resumes, resolve the Player Frame follow-up tasks
+listed above and keep follow-on Target Frame work as a separate slice after the
+Player Frame presentation/configuration foundation is stable.
 
 1. Complete Q-011B's field-by-field definition.
 2. Convert any supplied conversation excerpts or screenshots into dated decision

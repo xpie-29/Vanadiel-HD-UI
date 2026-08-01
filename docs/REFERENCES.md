@@ -1,6 +1,6 @@
 # Vana'diel HD UI — References and Provenance
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-01
 
 This register distinguishes authoritative policy/technical sources from
 inspiration-only projects. A listing here is not permission to copy code or
@@ -29,10 +29,9 @@ assets and does not imply affiliation or endorsement.
 | `assets/concepts/party-frames-stacked-concept-v1-1920x1080.png` | Rejected party-frame Proof 1 | Generated with the built-in OpenAI image-generation tool using the approved project concept family as visual references. Retained only as concept history. |
 | `assets/concepts/party-frames-raid-grid-concept-v1-1920x1080.png` | Rejected party-frame Proof 2 | Edited from the stacked proposal with the built-in OpenAI image-generation tool. Retained only as concept history. |
 | `assets/concepts/alliance-frames-three-party-concept-v1-1920x1080.png` | Approved party/alliance Proof 3 direction | Edited from the compact party proposal with the built-in OpenAI image-generation tool. Establishes Parties A, B, and C as three identical six-slot stacks without expanding approved data availability. Production geometry and long-name capacity remain pending implementation testing. |
-| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_bg.png` | Player Frame placeholder background asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 594x340, concept-v3-inspired dark glass/brass frame with left ornament; not final production art. |
-| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_bars.png` | Player Frame placeholder bar-track cluster asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 464x184, includes fixed HP/MP/TP track cluster and integrated TP-pip socket region; not final production art. |
-| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_tpactive.png` | Player Frame active TP-pip placeholder asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 18x18, enlarged bright-blue jewel direction; not final production art. |
-| `addon/VanadielHDUI/assets/placeholders/player_frame/pframe_tpinactive.png` | Player Frame inactive TP-pip placeholder asset | Original deterministic refinement placeholder generated locally on 2026-07-31 for sizing/layer validation. PNG, 18x18, enlarged inactive jewel direction; not final production art. |
+| `addon/VanadielHDUI/assets/player_frame/pframe_bg.png` | Player Frame production background asset | Original production artwork supplied by Xpie on 2026-07-31. PNG, 1930x815 transparent canvas; complete decorative chassis, outer shadow, brass border, inner bevels, navy surface, and left ornament. |
+| `addon/VanadielHDUI/assets/player_frame/pframe_bars.png` | Player Frame production bar-track asset | Original production artwork supplied by Xpie on 2026-07-31. PNG, 1930x815 transparent canvas aligned to `pframe_bg.png`; fixed HP/MP/TP track artwork and inactive TP-jewel socket/backdrop. |
+| `addon/VanadielHDUI/assets/player_frame/pframe_tpactive.png` | Player Frame active TP-jewel asset | Original production artwork supplied by Xpie on 2026-07-31. PNG, 98x98; rendered only for met 1000/2000/3000 TP thresholds. The inactive state is provided by `pframe_bars.png`. |
 
 ## 2. Official policy and platform references
 
@@ -159,8 +158,9 @@ boundary revision and Q-011B pet-frame review.
 | Archive SHA-256 | `C0BD250AA5DDD7134D3C30512987BAE90C3990852D3BCAD4A8B54C243F5008A5` |
 | Main-file notice | MIT License header; copyright 2023 tirem |
 | Current upstream review | Checked 2026-07-30; public default branch `main`. The README documents a single Ashita v4 addon with in-game `/xiui` configuration and selectable features. The repository-level license is GNU GPL version 3. |
-| Font/scaling behavior reviewed | At upstream commit `7d960b3bf47ea6979b3a580d97ce04e36829c0c9`, `XIUI/libs/imtext.lua` loads and caches font handles outside the per-frame render path, measures text at requested pixel sizes, and uses draw-list text calls with explicit font sizes. `XIUI/modules/partylist/display.lua` scales layout geometry separately and supplies configured font sizes to that text layer. |
+| Font/scaling behavior reviewed | At upstream commit `7d960b3bf47ea6979b3a580d97ce04e36829c0c9`, `XIUI/libs/imtext.lua` loads and caches font handles outside the per-frame render path, measures text at requested pixel sizes, and uses draw-list text calls with explicit font sizes. `XIUI/modules/partylist/display.lua` scales layout geometry separately and supplies configured font sizes to that text layer. XIUI was also checked as a behavior reference for configurable text outline/font preferences during the 2026-08-01 Player Frame readability pass. |
 | Texture behavior reviewed | Checked current public `XIUI/libs/texturemanager.lua` and `XIUI/libs/windowbackground.lua` on 2026-07-31 after Vana'diel HD UI's addon-local placeholder PNGs were found in game but not loaded through ImGui helper guesses. XIUI demonstrates the Ashita behavior pattern of loading file textures through the installed `d3d8` runtime and submitting texture pointers to ImGui draw lists. |
+| TP-flash behavior reviewed | Checked XIUI as a behavior reference for color-selectable active Player Bar TP-flash emphasis during the 2026-08-01 Player Frame readability pass. Vana'diel HD UI implements an original pulsing color overlay on its own active TP-jewel texture. |
 | Target-effect behavior reviewed | Reconstructs enemy effects from observed action/result messages, fixed or default duration estimates, wear-off/death messages, and zone clearing; target bar shows remaining estimates |
 | Pet behavior reviewed | Separate Avatar, Charm, Jug, Automaton, and Wyvern configurations; demonstrates name/level, HP/MP/TP, distance, status, pet-target, and command-recast possibilities |
 | Project use | Behavior reference only; no code, duration tables, submodules, or assets incorporated |
@@ -197,6 +197,11 @@ were reviewed only to identify the Ashita rendering behavior: custom PNGs are
 loaded through the installed D3D8 binding and drawn through ImGui draw lists by
 texture pointer. Vana'diel HD UI's placeholder assets, loader wrapper,
 lifetime, diagnostics, and fallback renderer are original project code.
+
+For D-029, XIUI was reviewed only for the general behavior pattern of
+configurable font readability treatment and active TP-resource flashing. No
+source, constants, font files, textures, assets, or distinctive implementation
+details were incorporated.
 
 ### EquipMon and other external addons
 

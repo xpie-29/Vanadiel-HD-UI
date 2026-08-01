@@ -1,3 +1,5 @@
+local color = require('core.color');
+
 local presentation = {};
 presentation.__index = presentation;
 
@@ -14,7 +16,20 @@ end
 function presentation.new(imgui)
     return setmetatable({
         imgui = imgui,
+        font_family = 'default',
+        outline_enabled = false,
+        outline_size = 0,
+        outline_color = 0xFF000000,
     }, presentation);
+end
+
+function presentation:set_options(settings)
+    settings = settings or {};
+    self.font_family = settings.font_family or 'default';
+    self.outline_enabled = settings.font_outline_enabled == true;
+    self.outline_size = tonumber(settings.font_outline_size) or 0;
+    self.outline_color = color.to_u32(
+        settings.font_outline_color, 255, '#000000');
 end
 
 function presentation:scaled_size(base_size, scale, minimum)
@@ -36,20 +51,44 @@ function presentation:measure_text(text, pixel_size)
     return width, pixel_size;
 end
 
-function presentation:draw_text(draw_list, text, x, y, color, pixel_size)
-    local imgui = self.imgui;
+local function draw_text_once(draw_list, imgui, text, x, y, text_color,
+        pixel_size)
     local position = { x, y };
     local font = imgui.GetFont and imgui.GetFont() or nil;
     local ok = false;
 
     if font ~= nil then
         ok = pcall(function ()
-            draw_list:AddText(font, pixel_size, position, color, tostring(text));
+            draw_list:AddText(font, pixel_size, position, text_color,
+                tostring(text));
         end);
     end
     if not ok then
-        draw_list:AddText(position, color, tostring(text));
+        draw_list:AddText(position, text_color, tostring(text));
     end
+end
+
+function presentation:draw_text(draw_list, text, x, y, text_color, pixel_size)
+    local imgui = self.imgui;
+    local outline_size = math.floor(tonumber(self.outline_size) or 0);
+    if self.outline_enabled and outline_size > 0 then
+        local offsets = {
+            { -outline_size, -outline_size },
+            { 0, -outline_size },
+            { outline_size, -outline_size },
+            { -outline_size, 0 },
+            { outline_size, 0 },
+            { -outline_size, outline_size },
+            { 0, outline_size },
+            { outline_size, outline_size },
+        };
+        for _, offset in ipairs(offsets) do
+            draw_text_once(draw_list, imgui, text, x + offset[1],
+                y + offset[2], self.outline_color, pixel_size);
+        end
+    end
+
+    draw_text_once(draw_list, imgui, text, x, y, text_color, pixel_size);
 end
 
 function presentation:measure_lines(lines)

@@ -1,7 +1,7 @@
 # Vana'diel HD UI — Design Specification
 
 **Status:** Transferred baseline; design and gameplay audit  
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-01
 
 **Authority:** Approved decisions in `DECISIONS.md` override this specification.
 
@@ -153,31 +153,66 @@ slice, while player name and job/subjob text align with the resource label
 column so the later graphical pass can replace the temporary spacing without
 changing field behavior.
 
-D-028 starts the Player Frame graphical placeholder pass. The current renderer
-uses original draw-list placeholders for a full-coverage lowest-layer
-background, fixed shared HP/MP/TP track treatment, two-color resource-bar
-fills, an integrated lower-right TP-pip backing, and three bright blue
-crystal-like TP pips. The background layer has `background_enabled` and
-`background_opacity` controls; background opacity is an additional
-background-only control composed with the module's effective opacity. These
-placeholders are for layer-order and size validation, not final production
-assets. The current generated refinement PNG placeholders are `pframe_bg.png`
-594x340, `pframe_bars.png` 464x184, `pframe_tpactive.png` 18x18, and
-`pframe_tpinactive.png` 18x18 under
-`addon/VanadielHDUI/assets/placeholders/player_frame/`; main background opacity
-remains configuration-owned. The TP jewel assets and renderer draw size were
-increased by about 30 percent from the first placeholder pass. The live Player
-Frame window must suppress ImGui default
+D-029 extends the shared presentation layer with global text-outline controls
+for explicit-size draw-list text. Outline is enabled by default and has
+user-selectable outline size and color. The global font-family preference is
+persisted and exposed for the future approved font-loading/caching layer; until
+that layer exists, live text continues to render through the active Ashita
+ImGui font handle. Player Frame text defaults to `#F1EAD8`, and the module
+exposes separate color controls for player name, job/subjob, resource values,
+and the HP, MP, and TP labels.
+
+D-028 governs the Player Frame graphical layer pass. The current renderer uses
+original production PNG layers for a full-coverage lowest-layer background,
+fixed shared HP/MP/TP track treatment, two-color resource-bar fills, an
+integrated lower-right inactive TP-pip backing, and active bright-blue TP jewel
+overlays. The background layer has `background_enabled`; its separate
+`background_opacity` control has been removed because the production
+background opacity is baked into the image. The current production PNG assets
+are `pframe_bg.png` 1930x815, `pframe_bars.png` 1930x815, and
+`pframe_tpactive.png` 98x98 under
+`addon/VanadielHDUI/assets/player_frame/`. The background and bar images share
+the same transparent canvas and must be drawn at the same 0,0 layer origin.
+The active jewel is positioned in the same production coordinate system and
+drawn only for native TP thresholds that are currently met. The current
+1930x815 runtime PNGs were supplied at a reduced source size. Module scale 1.0
+is the intended default review size and draws the production canvas at
+one-quarter of the PNG source dimensions, matching the in-game size previously
+seen at module scale 0.50. The live Player Frame window must suppress ImGui default
 chrome/background so only the module's own layers are visible; its `Begin`
 call uses the Ashita-style open boolean and a unique no-title/no-resize/no-move
-flag set rather than duplicating aggregate decoration flags. Placeholder
+flag set rather than duplicating aggregate decoration flags. Production
 textures are loaded from the addon-local PNG files through Ashita's D3D8
 runtime when available and submitted to the ImGui draw list as texture
 pointers. Once the shared bar-track image renders, the older draw-list track
-fills, outlines, and TP-pip backing frame must be suppressed so the image
+fills, outlines, and TP-pip backing frame must be suppressed so the production
 assets own the visible frame treatment. If the D3D texture path or any older
 ImGui image helper is unavailable, the renderer falls back to draw-list
 scaffolding and logs the texture-runtime diagnostic.
+
+The active TP jewel may draw a configurable pulsing color overlay, enabled by
+default with white, to make met native TP thresholds more noticeable during
+gameplay. This is a visual emphasis effect only; it must not imply action
+selection, tactical priority, prediction, or automation.
+
+Outstanding Player Frame refinement tasks from the 2026-08-01 in-game review:
+
+- `pframe_bg.png` transparency and decorative-element sizing require manual
+  Photoshop adjustment in the production asset, followed by same-canvas
+  registration checks against `pframe_bars.png`.
+- Font sizing needs review against the default Player Frame scale and 4K
+  living-room-distance legibility so labels do not require maximum configured
+  sizes to be readable.
+- The active TP-jewel flash requires in-game debugging because the current
+  implementation does not yet behave as expected.
+- Player Frame text placement should gain granular X/Y micro-position controls
+  for name, job/subjob, HP label, MP label, TP label, and resource values.
+- The configuration menu needs a layout/usability review. Player Frame options
+  should be grouped and labeled clearly rather than relying only on the generic
+  descriptor-option list.
+- Recent Ashita-level configuration-menu warnings/errors must be captured from
+  the Ashita logs or console and reviewed individually before the config UI is
+  revised.
 
 The initial release supports one active combat-frame runtime style:
 

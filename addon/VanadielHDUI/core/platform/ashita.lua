@@ -2,6 +2,7 @@ local util = require('core.util');
 local config_window = require('ui.config_window');
 local layout_editor_module = require('core.layout_editor');
 local presentation_module = require('core.presentation');
+local color = require('core.color');
 
 local platform = {};
 platform.__index = platform;
@@ -13,7 +14,67 @@ local player_frame_asset_files = {
     background = 'pframe_bg.png',
     bars = 'pframe_bars.png',
     tp_active = 'pframe_tpactive.png',
-    tp_inactive = 'pframe_tpinactive.png',
+};
+
+local player_frame_asset_count = 3;
+
+local player_frame_canvas = {
+    width = 1930,
+    height = 815,
+};
+
+local player_frame_layout = {
+    name = { x = 355, y = 115 },
+    job = { x = 355, y = 210 },
+    resources = {
+        hp = {
+            label = 'HP',
+            label_x = 377,
+            label_y = 347,
+            bar_x = 546,
+            bar_y = 324,
+            bar_width = 1294,
+            bar_height = 94,
+            colors = {
+                color.to_u32('#E26C6C', 0xDD),
+                color.to_u32('#FA9C9C', 0xDD),
+            },
+        },
+        mp = {
+            label = 'MP',
+            label_x = 377,
+            label_y = 487,
+            bar_x = 546,
+            bar_y = 464,
+            bar_width = 1294,
+            bar_height = 94,
+            colors = {
+                color.to_u32('#9ABB5A', 0xDD),
+                color.to_u32('#BFE07D', 0xDD),
+            },
+        },
+        tp = {
+            label = 'TP',
+            label_x = 377,
+            label_y = 625,
+            bar_x = 546,
+            bar_y = 602,
+            bar_width = 1294,
+            bar_height = 95,
+            colors = {
+                color.to_u32('#3898CE', 0xDD),
+                color.to_u32('#78C4EE', 0xDD),
+            },
+        },
+    },
+    tp_jewels = {
+        size = 98,
+        positions = {
+            { x = 1491.5, y = 704.5, threshold = 1000 },
+            { x = 1612.5, y = 704.5, threshold = 2000 },
+            { x = 1733.5, y = 704.5, threshold = 3000 },
+        },
+    },
 };
 
 local function read_only_empty()
@@ -374,17 +435,18 @@ function render_context.new(imgui, asset_root, logger)
     if logger ~= nil then
         if asset_root == nil then
             logger:warn('player frame placeholder asset root unavailable');
-        elseif existing_assets < 4 then
-            logger:warn(('player frame placeholder files found: %d/4 in %s')
-                :format(existing_assets, tostring(asset_root)));
+        elseif existing_assets < player_frame_asset_count then
+            logger:warn(('player frame asset files found: %d/%d in %s')
+                :format(existing_assets, player_frame_asset_count,
+                    tostring(asset_root)));
             for key, asset in pairs(player_frame_assets) do
                 if not asset.exists then
-                    logger:warn(('missing player frame placeholder %s: %s')
+                    logger:warn(('missing player frame asset %s: %s')
                         :format(key, tostring(asset.path)));
                 end
             end
         elseif loaded_assets == 0 then
-            logger:warn(('player frame placeholder files found but textures '
+            logger:warn(('player frame asset files found but textures '
                 .. 'were not loaded from %s; using draw-list fallback graphics')
                 :format(tostring(asset_root)));
             logger:warn('available D3D texture runtime: '
@@ -392,9 +454,10 @@ function render_context.new(imgui, asset_root, logger)
             logger:warn('available imgui image/texture helper methods: '
                 .. describe_texture_loader_methods(imgui));
         else
-            logger:info(('player frame placeholder files found: %d/4; '
-                .. 'textures loaded: %d/4'):format(existing_assets,
-                loaded_assets));
+            logger:info(('player frame asset files found: %d/%d; '
+                .. 'textures loaded: %d/%d'):format(existing_assets,
+                player_frame_asset_count, loaded_assets,
+                player_frame_asset_count));
         end
     end
 
@@ -405,6 +468,7 @@ function render_context.new(imgui, asset_root, logger)
         player_frame_assets = player_frame_assets,
         global_opacity = 1.0,
         global_scale = 1.0,
+        flash_time = 0.0,
     }, render_context);
 end
 
@@ -424,10 +488,13 @@ function render_context:begin_frame(application)
     if settings ~= nil and settings.global ~= nil then
         self.global_opacity = tonumber(settings.global.opacity) or 1.0;
         self.global_scale = tonumber(settings.global.user_scale) or 1.0;
+        self.presentation:set_options(settings.global);
     else
         self.global_opacity = 1.0;
         self.global_scale = 1.0;
+        self.presentation:set_options(nil);
     end
+    self.flash_time = os.clock();
     local raw_x, raw_y =
         self.imgui.GetMouseDragDelta(ImGuiMouseButton_Left, 0);
     local delta_x, delta_y = vector_xy(raw_x, raw_y);
@@ -763,46 +830,51 @@ local function draw_image(draw_list, asset, x, y, width, height, color)
     return ok;
 end
 
-function render_context:_draw_resource_bar(draw_list, presenter, origin_x,
-        origin_y, width, height, label, value, percent, colors, scale,
-        label_size, value_size, value_alignment, draw_track)
-    local label_gap = 4 * scale;
-    local label_width = 24 * scale;
-    local bar_x = origin_x + label_width + label_gap;
-    local value_padding = 8 * scale;
+function render_context:_draw_player_resource(draw_list, presenter, layout,
+        value, percent, origin_x, origin_y, asset_scale, label_size, value_size,
+        value_alignment, draw_track, label_color, value_color)
+    local function scaled(value)
+        return value * asset_scale;
+    end
+    local bar_x = origin_x + scaled(layout.bar_x);
+    local bar_y = origin_y + scaled(layout.bar_y);
+    local bar_width = scaled(layout.bar_width);
+    local bar_height = scaled(layout.bar_height);
+    local value_padding = scaled(28);
     local value_text = tostring(value);
     local value_width = presenter:measure_text(value_text, value_size);
-    local value_x = bar_x + width - value_width - value_padding;
+    local value_x = bar_x + bar_width - value_width - value_padding;
     if value_alignment == 'left' then
         value_x = bar_x + value_padding;
     elseif value_alignment == 'center' then
-        value_x = bar_x + (width - value_width) / 2;
+        value_x = bar_x + (bar_width - value_width) / 2;
     end
     if value_x < bar_x + value_padding then
         value_x = bar_x + value_padding;
     end
-    local max_x = bar_x + width - value_padding;
+    local max_x = bar_x + bar_width - value_padding;
     if value_x + value_width > max_x then
         value_x = math.max(bar_x + value_padding, max_x - value_width);
     end
 
-    presenter:draw_text(draw_list, label, origin_x,
-        origin_y + 2 * scale, 0xFFF3D9A6, label_size);
+    presenter:draw_text(draw_list, layout.label,
+        origin_x + scaled(layout.label_x), origin_y + scaled(layout.label_y),
+        label_color, label_size);
     if draw_track then
-        draw_rect(draw_list, true, bar_x, origin_y, bar_x + width,
-            origin_y + height, 0xCC142131);
+        draw_rect(draw_list, true, bar_x, bar_y, bar_x + bar_width,
+            bar_y + bar_height, 0xCC142131);
     end
-    local fill_width = width * clamp(percent, 0, 1);
+    local fill_width = bar_width * clamp(percent, 0, 1);
     if fill_width > 0 then
-        draw_gradient_rect(draw_list, bar_x, origin_y, bar_x + fill_width,
-            origin_y + height, colors[1], colors[2]);
+        draw_gradient_rect(draw_list, bar_x, bar_y, bar_x + fill_width,
+            bar_y + bar_height, layout.colors[1], layout.colors[2]);
     end
     if draw_track then
-        draw_rect(draw_list, false, bar_x, origin_y, bar_x + width,
-            origin_y + height, 0xFFD0A64A);
+        draw_rect(draw_list, false, bar_x, bar_y, bar_x + bar_width,
+            bar_y + bar_height, 0xFFD0A64A);
     end
     presenter:draw_text(draw_list, value_text, value_x,
-        origin_y + 2 * scale, 0xFFE5EAEE, value_size);
+        bar_y + (bar_height - value_size) / 2, value_color, value_size);
 end
 
 function render_context:_draw_player_background(draw_list, x, y, width, height,
@@ -818,32 +890,32 @@ function render_context:_draw_player_background(draw_list, x, y, width, height,
         color_with_opacity(0xFFD0A64A, math.min(1, opacity + 0.18)));
 end
 
-function render_context:_draw_tp_pips(draw_list, x, y, tp, scale, draw_backing)
-    local pip_size = 6.5 * scale;
-    local pip_gap = 3 * scale;
-    local backing_pad = 3 * scale;
-    if draw_backing then
-        local backing_width = pip_size * 3 + pip_gap * 2 + backing_pad * 2;
-        local backing_height = pip_size + backing_pad * 2;
-        draw_rect(draw_list, true, x - backing_pad, y - backing_pad,
-            x - backing_pad + backing_width, y - backing_pad + backing_height,
-            0xCC142131);
-        draw_rect(draw_list, false, x - backing_pad, y - backing_pad,
-            x - backing_pad + backing_width, y - backing_pad + backing_height,
-            0xFFD0A64A);
-    end
-
-    local thresholds = { 1000, 2000, 3000 };
-    for index, threshold in ipairs(thresholds) do
-        local pip_x = x + (index - 1) * (pip_size + pip_gap);
-        local asset = tp >= threshold and self.player_frame_assets.tp_active
-            or self.player_frame_assets.tp_inactive;
-        if not draw_image(draw_list, asset, pip_x, y, pip_size, pip_size) then
-            local fill_color = tp >= threshold and 0xFF7DD6FF or 0x99384955;
-            draw_rect(draw_list, true, pip_x, y, pip_x + pip_size,
-                y + pip_size, fill_color);
-            draw_rect(draw_list, false, pip_x, y, pip_x + pip_size,
-                y + pip_size, 0xFFBDEBFF);
+function render_context:_draw_player_tp_jewels(draw_list, tp, asset_scale,
+        origin_x, origin_y, draw_fallback, flash_enabled, flash_color)
+    local jewel_layout = player_frame_layout.tp_jewels;
+    local jewel_size = jewel_layout.size * asset_scale;
+    local pulse = (math.sin((tonumber(self.flash_time) or 0) * 6.28318 * 1.7)
+        + 1.0) / 2.0;
+    local flash_alpha = math.floor(70 + pulse * 115 + 0.5);
+    for _, jewel in ipairs(jewel_layout.positions) do
+        local x = origin_x + jewel.x * asset_scale;
+        local y = origin_y + jewel.y * asset_scale;
+        if tp >= jewel.threshold then
+            if not draw_image(draw_list, self.player_frame_assets.tp_active,
+                    x, y, jewel_size, jewel_size) and draw_fallback then
+                draw_rect(draw_list, true, x, y, x + jewel_size,
+                    y + jewel_size, 0xFF7DD6FF);
+                draw_rect(draw_list, false, x, y, x + jewel_size,
+                    y + jewel_size, 0xFFBDEBFF);
+            end
+            if flash_enabled then
+                draw_image(draw_list, self.player_frame_assets.tp_active,
+                    x, y, jewel_size, jewel_size,
+                    color.with_alpha_u32(flash_color, flash_alpha));
+            end
+        elseif draw_fallback then
+            draw_rect(draw_list, false, x, y, x + jewel_size,
+                y + jewel_size, 0xFFBDEBFF);
         end
     end
 end
@@ -856,33 +928,32 @@ function render_context:player_frame(descriptor, state, module_config)
     local imgui = self.imgui;
     local presenter = self.presentation;
     local scale = self:_effective_scale(module_config);
+    local asset_scale = scale / 4.0;
     local options = module_config.options or {};
-    local name_size = presenter:scaled_size(options.name_font_size or 15, scale, 8);
-    local job_size = presenter:scaled_size(options.job_font_size or 11, scale, 8);
+    local name_size = presenter:scaled_size(options.name_font_size or 18, scale, 8);
+    local job_size = presenter:scaled_size(options.job_font_size or 13, scale, 8);
     local label_size = presenter:scaled_size(
-        options.resource_label_font_size or 11, scale, 8);
+        options.resource_label_font_size or 16, scale, 8);
     local value_size = presenter:scaled_size(
-        options.resource_value_font_size or 11, scale, 8);
+        options.resource_value_font_size or 16, scale, 8);
     local value_alignment = options.resource_value_alignment or 'right';
     local background_enabled = options.background_enabled ~= false;
-    local background_opacity = clamp(options.background_opacity or 0.72, 0, 1)
-        * self:_effective_opacity(module_config);
+    local name_color = color.to_u32(options.name_font_color, 255, '#F1EAD8');
+    local job_color = color.to_u32(options.job_font_color, 255, '#F1EAD8');
+    local value_color = color.to_u32(
+        options.resource_value_font_color, 255, '#F1EAD8');
+    local hp_label_color = color.to_u32(
+        options.hp_label_font_color, 255, '#F1EAD8');
+    local mp_label_color = color.to_u32(
+        options.mp_label_font_color, 255, '#F1EAD8');
+    local tp_label_color = color.to_u32(
+        options.tp_label_font_color, 255, '#F1EAD8');
+    local tp_flash_enabled = options.tp_jewel_flash_enabled ~= false;
+    local tp_flash_color = color.to_u32(
+        options.tp_jewel_flash_color, 255, '#FFFFFF');
     local offset_x, offset_y = self:_position(descriptor, module_config);
-    local width = presenter:scaled_size(220, scale, 80);
-    local padding = presenter:scaled_size(10, scale, 4);
-    local label_width = presenter:scaled_size(24, scale, 10);
-    local label_gap = presenter:scaled_size(4, scale, 2);
-    local pip_size = presenter:scaled_size(6.5, scale, 2);
-    local pip_gap = presenter:scaled_size(3, scale, 1);
-    local pip_top_gap = presenter:scaled_size(3, scale, 1);
-    local hp_height = presenter:scaled_size(18, scale, 8);
-    local small_height = presenter:scaled_size(16, scale, 8);
-    local gap = presenter:scaled_size(5, scale, 2);
-    local identity_gap = presenter:scaled_size(2, scale, 0);
-    local height = math.max(presenter:scaled_size(108, scale, 48),
-        padding * 2 + name_size + identity_gap + job_size + gap
-        + hp_height + gap + small_height + gap + small_height
-        + pip_top_gap + pip_size);
+    local width = player_frame_canvas.width * asset_scale;
+    local height = player_frame_canvas.height * asset_scale;
     imgui.SetNextWindowPos({ 40 + offset_x, 80 + offset_y }, ImGuiCond_Always);
     imgui.SetNextWindowSize({ width, height }, ImGuiCond_Always);
     imgui.SetNextWindowBgAlpha(0.0);
@@ -914,47 +985,48 @@ function render_context:player_frame(descriptor, state, module_config)
             window_flags) then
         local draw_list = imgui.GetWindowDrawList();
         local window_x, window_y = self:_window_origin();
-        local label_x = window_x + padding;
         if background_enabled then
             self:_draw_player_background(draw_list, window_x, window_y, width,
-                height, background_opacity);
+                height, 1.0);
+        end
+        local drew_bar_asset = draw_image(draw_list, self.player_frame_assets.bars,
+            window_x, window_y, width, height);
+        local function canvas_x(value)
+            return window_x + value * asset_scale;
+        end
+        local function canvas_y(value)
+            return window_y + value * asset_scale;
         end
         local name = state and state.available and state.name or 'Player';
-        presenter:draw_text(draw_list, name, label_x,
-            window_y + padding, 0xFFF3D9A6, name_size);
+        presenter:draw_text(draw_list, name, canvas_x(player_frame_layout.name.x),
+            canvas_y(player_frame_layout.name.y), name_color, name_size);
         local job_text = state and state.available and state.job_text or '';
         if job_text ~= '' then
-            presenter:draw_text(draw_list, job_text, label_x,
-                window_y + padding + name_size + identity_gap,
-                0xFF9FB0BD, job_size);
+            presenter:draw_text(draw_list, job_text,
+                canvas_x(player_frame_layout.job.x),
+                canvas_y(player_frame_layout.job.y),
+                job_color, job_size);
         end
 
-        local bar_y = window_y + padding + name_size + identity_gap
-            + job_size + gap;
-        local bar_width = width - padding * 2 - label_width - label_gap;
-        local bar_x = label_x + label_width + label_gap;
-        local drew_bar_asset = draw_image(draw_list, self.player_frame_assets.bars, bar_x, bar_y,
-            bar_width, hp_height + gap + small_height + gap + small_height
-            + pip_top_gap + pip_size + 6 * scale);
         local live = state and state.available;
-        self:_draw_resource_bar(draw_list, presenter, label_x, bar_y, bar_width,
-            hp_height, 'HP', live and state.hp or 0,
-            live and state.hp_percent or 0, { 0xDD1E724B, 0xDD45C984 }, scale,
-            label_size, value_size, value_alignment, not drew_bar_asset);
-        bar_y = bar_y + hp_height + gap;
-        self:_draw_resource_bar(draw_list, presenter, label_x, bar_y, bar_width,
-            small_height, 'MP', live and state.mp or 0,
-            live and state.mp_percent or 0, { 0xDD244B87, 0xDD68A8E6 }, scale,
-            label_size, value_size, value_alignment, not drew_bar_asset);
-        bar_y = bar_y + small_height + gap;
-        self:_draw_resource_bar(draw_list, presenter, label_x, bar_y, bar_width,
-            small_height, 'TP', live and state.tp or 0,
-            live and state.tp_percent or 0, { 0xDD8F7621, 0xDDE2C45D }, scale,
-            label_size, value_size, value_alignment, not drew_bar_asset);
-        local pips_width = pip_size * 3 + pip_gap * 2;
-        self:_draw_tp_pips(draw_list, bar_x + bar_width - pips_width,
-            bar_y + small_height + pip_top_gap, live and state.tp or 0, scale,
-            not drew_bar_asset);
+        self:_draw_player_resource(draw_list, presenter,
+            player_frame_layout.resources.hp, live and state.hp or 0,
+            live and state.hp_percent or 0, window_x, window_y, asset_scale,
+            label_size, value_size, value_alignment, not drew_bar_asset,
+            hp_label_color, value_color);
+        self:_draw_player_resource(draw_list, presenter,
+            player_frame_layout.resources.mp, live and state.mp or 0,
+            live and state.mp_percent or 0, window_x, window_y, asset_scale,
+            label_size, value_size, value_alignment, not drew_bar_asset,
+            mp_label_color, value_color);
+        self:_draw_player_resource(draw_list, presenter,
+            player_frame_layout.resources.tp, live and state.tp or 0,
+            live and state.tp_percent or 0, window_x, window_y, asset_scale,
+            label_size, value_size, value_alignment, not drew_bar_asset,
+            tp_label_color, value_color);
+        self:_draw_player_tp_jewels(draw_list, live and state.tp or 0,
+            asset_scale, window_x, window_y, not drew_bar_asset,
+            tp_flash_enabled, tp_flash_color);
         if imgui.Dummy ~= nil then
             imgui.Dummy({ width, height });
         end

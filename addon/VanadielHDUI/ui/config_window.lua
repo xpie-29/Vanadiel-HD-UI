@@ -2,6 +2,7 @@ local config_window = {};
 config_window.__index = config_window;
 local theme_module = require('ui.theme');
 local util = require('core.util');
+local color = require('core.color');
 
 local anchors = {
     'top_left', 'top', 'top_right',
@@ -16,6 +17,36 @@ local function next_value(values, current)
         end
     end
     return values[1];
+end
+
+local function draw_color_control(imgui, label, value)
+    local rgba = color.to_float4(value);
+    if imgui.ColorEdit3 ~= nil and imgui.ColorEdit3(label, rgba) then
+        return true, color.from_float4(rgba);
+    end
+    if imgui.ColorEdit4 ~= nil and imgui.ColorEdit4(label, rgba) then
+        return true, color.from_float4(rgba);
+    end
+
+    imgui.Text(label .. ': ' .. tostring(value));
+    local red, green, blue = color.to_rgb(value);
+    local changed = false;
+    local pointer = { red };
+    if imgui.SliderInt('R##' .. label, pointer, 0, 255) then
+        red = pointer[1];
+        changed = true;
+    end
+    pointer = { green };
+    if imgui.SliderInt('G##' .. label, pointer, 0, 255) then
+        green = pointer[1];
+        changed = true;
+    end
+    pointer = { blue };
+    if imgui.SliderInt('B##' .. label, pointer, 0, 255) then
+        blue = pointer[1];
+        changed = true;
+    end
+    return changed, color.from_rgb(red, green, blue);
 end
 
 function config_window.new(imgui, descriptors)
@@ -60,6 +91,31 @@ function config_window:_global_controls(application, settings)
     local pixel_snap = { settings.global.pixel_snap };
     if imgui.Checkbox('Pixel snapping', pixel_snap) then
         application:set_global('pixel_snap', pixel_snap[1]);
+    end
+
+    imgui.Text('Font: ' .. tostring(settings.global.font_family));
+    imgui.SameLine();
+    if imgui.Button('Next font##global') then
+        application:set_global('font_family',
+            next_value({ 'default', 'sans', 'serif', 'mono' },
+                settings.global.font_family));
+    end
+
+    local outline_enabled = { settings.global.font_outline_enabled };
+    if imgui.Checkbox('Font outline', outline_enabled) then
+        application:set_global('font_outline_enabled', outline_enabled[1]);
+    end
+
+    local outline_size = { settings.global.font_outline_size };
+    if imgui.SliderInt('Font outline size', outline_size, 0, 6) then
+        application:set_global('font_outline_size', outline_size[1]);
+    end
+
+    local changed, next_color = draw_color_control(imgui,
+        'Font outline color##global',
+        settings.global.font_outline_color);
+    if changed then
+        application:set_global('font_outline_color', next_color);
     end
 
     if imgui.Button('Reset all settings') then
@@ -162,6 +218,13 @@ function config_window:_module_controls(application, descriptor, module_settings
             if imgui.Button('Next##' .. descriptor.id .. key) then
                 application:set_module_value(descriptor.id,
                     { 'options', key }, next_value(rule.values, value));
+            end
+        elseif rule.type == 'color' then
+            local changed, next_color = draw_color_control(imgui,
+                key .. '##' .. descriptor.id, value);
+            if changed then
+                application:set_module_value(descriptor.id,
+                    { 'options', key }, next_color);
             end
         end
     end

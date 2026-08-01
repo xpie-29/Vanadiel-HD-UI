@@ -28,7 +28,7 @@ local function child_path(root, child)
 end
 
 local logger = logger_module.new('VanaHD');
-local asset_root = child_path(addon.path, 'assets\\placeholders\\player_frame');
+local asset_root = child_path(addon.path, 'assets\\player_frame');
 local platform = platform_module.new(imgui, descriptors, logger, {
     asset_root = asset_root,
 });

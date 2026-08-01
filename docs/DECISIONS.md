@@ -1,6 +1,6 @@
 # Vana'diel HD UI — Decision Record
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-01
 
 **Authority:** This is the highest-priority project design document.
 
@@ -765,37 +765,63 @@ Statuses:
   from other modules. Hide only the Player Frame anchor control through module
   descriptor metadata. Other modules may continue to expose anchors where useful.
 
-### D-028 — Player Frame graphical placeholder layers
+### D-028 — Player Frame graphical layers
 
 - **Status:** Approved
 - **Date:** 2026-07-31
 - **Source:** Xpie graphical-layer direction after Player Frame functional
   validation
 - **Decision:** Continue Player Frame refinement before starting other modules.
-  Add original placeholder graphical layers for the Player Frame: a lowest-layer
+  Add original graphical layers for the Player Frame: a lowest-layer
   full-coverage background, fixed shared HP/MP/TP track treatment, two-color
   resource fills, an integrated TP-pip backing, and three bright blue
   crystal-like TP pips.
-- **Placeholder assets:** Generate original PNG placeholders under
-  `addon/VanadielHDUI/assets/placeholders/player_frame/`: `pframe_bg.png` at 594x340,
-  `pframe_bars.png` at 464x184, `pframe_tpactive.png` at 18x18, and
-  `pframe_tpinactive.png` at 18x18. The sizes are a first 4K-oriented pass
-  derived from the current scaffold by the project's height-based scaling rule;
-  the TP jewels were increased by about 30 percent during the refinement pass.
-- **Background opacity:** The Player Frame background layer has its own
-  enable/disable and opacity controls. This opacity is an additional
-  background-only control used to satisfy the original Style 2 intent for the
-  initial single-style release; it must not require exposing a second
-  combat-frame runtime style.
+- **Production assets:** Use original PNG production assets under
+  `addon/VanadielHDUI/assets/player_frame/`: `pframe_bg.png` and
+  `pframe_bars.png` at 1930x815 on identical transparent canvases, plus
+  `pframe_tpactive.png` at 98x98. There is no separate inactive TP jewel asset;
+  the inactive state is part of the shared bar-track image.
+- **Background opacity:** The Player Frame background layer remains
+  enable/disable configurable, but no longer has a separate background-opacity
+  control because the production background opacity is baked into the image.
+- **Scale mapping:** The current 1930x815 runtime PNGs were supplied at a
+  reduced source size. Module scale 1.0 is the intended default review size and
+  draws the production canvas at one-quarter of the PNG source dimensions,
+  matching the in-game size previously seen at module scale 0.50. Background,
+  bars, and active TP jewels must scale from the same production coordinate
+  system.
 - **TP-pip placement:** Preserve D-015's lower-right pip direction. The TP-pip
   backing should integrate with the lower-right edge of the TP bar region.
-- **Implementation boundary:** Placeholder graphics may be draw-list
-  scaffolding or project-local placeholder PNGs while sizing and layer order
-  are validated. Main background opacity is handled through configuration.
-  Shaped refinement placeholders may use transparent pixels around the visible
-  frame, tracks, and jewels, but should not bake configurable opacity into the
-  main panel. Final production graphical assets must remain original and should
-  replace the placeholders only after in-game layout refinement.
+- **Implementation boundary:** Draw-list scaffolding may remain only as a
+  fail-safe fallback when production textures cannot load. Runtime rendering
+  should prefer the project-local production PNGs, with true transparent
+  backgrounds and same-origin registration for the background and bar layers.
+
+### D-029 — Player Frame readability and active-TP emphasis controls
+
+- **Status:** Approved
+- **Date:** 2026-08-01
+- **Source:** Xpie in-game 4K readability review after Player Frame production
+  asset integration
+- **Decision:** Add original presentation controls that improve readability and
+  visual salience without adding gameplay fields: global explicit-size text
+  outline enable/size/color settings, a persisted global font-family
+  preference, Player Frame text color controls, and a color-selectable flashing
+  overlay on active TP jewels.
+- **Defaults:** Player Frame text defaults to `#F1EAD8`. HP/MP/TP bar-gradient
+  defaults are HP `#E26C6C` to `#FA9C9C`, MP `#9ABB5A` to `#BFE07D`, and TP
+  `#3898CE` to `#78C4EE`. The active TP-jewel flash defaults to enabled with a
+  white overlay.
+- **Configuration:** Player Frame exposes separate color controls for name,
+  job/subjob, resource values, and each HP/MP/TP label. Global text outline
+  applies through the shared draw-list text path. The font-family preference is
+  persisted and exposed as the stable configuration hook for a later approved
+  font-loading/caching layer; the current renderer continues to draw through
+  the active Ashita ImGui font handle.
+- **Boundary:** These are visual presentation changes over already approved
+  local-player fields and TP thresholds. They do not add statuses, action
+  readiness recommendations, automation, hidden information, or Target Frame
+  behavior.
 
 ## Contradiction register
 

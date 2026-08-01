@@ -164,8 +164,8 @@ the native-source and boundary gates in `DESIGN-SPEC.md`.
 Schema version `2` has:
 
 - `schema_version`;
-- `global` settings for layout scale, opacity, and approved layout/style
-  identifiers; and
+- `global` settings for layout scale, opacity, pixel snapping, text outline,
+  and the persisted font-family preference; and
 - `modules.<id>` blocks containing `enabled`, `style`, base `position`,
   `scale`, `opacity`, descriptor-owned `options`, and `layout`; and
 - `layout.movement` plus descriptor-declared `layout.elements.<id>` X/Y
@@ -254,6 +254,10 @@ text against the active ImGui line height, submits draw-list text at explicit
 pixel sizes where the binding supports it, and sizes preview windows from the
 same scaled geometry/text inputs. This activates preview-only scale and shared
 party-title font-size behavior without returning to `SetWindowFontScale`.
+The same helper now supports a global outline pass for explicit-size text,
+with persisted enable, size, and color settings. The global font-family
+preference is persisted for the future approved font-loading/caching layer; it
+does not call `SetWindowFontScale` or swap fonts inside the frame render path.
 
 Entering preview captures one session token and notifies initialized modules.
 Exiting preview clears all preview adapters and notifies modules once.
@@ -304,9 +308,9 @@ require Ashita or FFXI. It covers:
 - failure isolation between modules;
 - the reviewed local-player capability, local party-slot vitals path,
   job/subjob formatting, Player Frame state normalization, and Player Frame
-  font/alignment-control, TP pip rendering, graphical placeholder layers, and
-  optional placeholder image asset loading with draw-list fallback and
-  diagnostic logging;
+  font/alignment-control, text color settings, TP pip rendering and flash
+  overlay, graphical production layers, and optional production image asset
+  loading with draw-list fallback and diagnostic logging;
 - reverse-order cleanup;
 - deterministic event registration/unregistration;
 - preview entry, party preview shape, exit, and unload cleanup;
